@@ -1,1 +1,1 @@
-# Parameter-Estimation-for-Interacting-Particle-Systems
+# Parameter Estimation for Interacting Particle Systems
