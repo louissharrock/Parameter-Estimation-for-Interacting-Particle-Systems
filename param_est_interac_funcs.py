@@ -185,11 +185,21 @@ def deg_matrix(Aij):
 def connect_matrix(Aij):
     mat = np.where(Aij>0,1,0)
     return(mat)
-            
+
+
+## Gaussian Interaction Kernel ##
+def influence_func_exp(r,mu,sd):
+    return 1/(np.sqrt(2*np.pi*sd**2))*np.exp(-(r-mu)**2/(sd**2))
+
+
+## Bump Interaction Kernel ##
+def influence_func_bump(r,centre=0.5,width=1,squeeze=1):
+    if(-width/2+centre<r<width/2+centre):
+        return np.exp(-squeeze/(1-(width/2*(r-centre))**2))
+    else:
+        return 0
 
 ###############################
-
-
 
 #######################
 #### SDE SIMULATOR ####
@@ -209,7 +219,8 @@ def connect_matrix(Aij):
 ## -> seed (random seed)
     
 def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
-                 Aij=None,Lij=None,sigma=1,x0=1,dt=0.1,seed=1):
+                 Aij=None,Lij=None,sigma=1,x0=1,dt=0.1,seed=1,
+                 Aij_calc = False, Aij_influence_func = None, **kwargs):
     
     ## set random seed
     np.random.seed(seed)
@@ -224,12 +235,31 @@ def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
     ## brownian motion
     dwt = np.sqrt(dt)*np.random.randn(nt+1,N)
 
+    ## calculuate aij
+    if(Aij_calc):
+        Aij = np.diag(N*[0.1])
+        Aij_tmp = np.diag(N*[0.1])
+    
     ## simulate
     if(beta!=None): ## mean field
         for i in range(0,nt):
             xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha)*dt - beta*(xt[i,:] - np.mean(xt[i,:]))*dt + sigma*dwt[i,:]
+
     if(np.any(Aij)): ## Aij form
         for i in range(0,nt):
+            if(Aij_calc):
+                for j in range(0,N):
+                    for k in range(N):
+                        dist_j_k = abs(xt[i,j]-xt[i,k])
+                        Aij_tmp[j,k] = Aij_influence_func(r=dist_j_k,**kwargs)
+                row_sums = [0]*N
+                for j in range(0,N):
+                    row_sums[j] = np.sum(Aij_tmp[j,:])
+                    if(row_sums[j]==0):
+                        row_sums[j]=1
+                for j in range(N):
+                    for k in range(N):
+                        Aij[j,k] = Aij_tmp[j,k]/row_sums[j]
             for j in range(0,N):
                 xt[i+1,j] = xt[i,j] - v_func(xt[i,j],alpha)*dt - np.dot(Aij[:,j],xt[i,j]-xt[i,:])*dt + sigma*dwt[i,j]
     if(np.any(Lij)): ## Lij form
