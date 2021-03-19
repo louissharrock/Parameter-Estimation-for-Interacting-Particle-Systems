@@ -25,6 +25,7 @@ default_directory = "/Users/ls616"
 code_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/Project Ideas/code"
 results_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/Project Ideas/code/results"
 fig_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/Project Ideas/notes/figures/sde_sims"
+fig_directory = "/Users/ls616/Desktop"
 sys.path.append(code_directory)
 
 #################
@@ -86,18 +87,18 @@ plt.show()
 # values of beta
 
 ## Parameters
-N = 5; T = 400; alpha = 0.1;
-beta_vals = np.array([0.00,0.01,0.05,0.1,0.2,0.5,1.0]);                    
-sigma = 1; x0 = 1; dt = 0.1; seed = 2
+N = 6; T = 400; alpha = 0;
+beta_vals = np.array([0.005,0.01,0.05,0.1,0.2,0.5]);                    
+sigma = 0.2; x0 = [-10,-7.5,-5,-2.5,0,2.5]; dt = 0.1; seed = 2
 t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
 
 ## Simulation
 for i in range(beta_vals.shape[0]):
-    sim_test = sde_sim_func(N=N,T=T,v_func=null_func,alpha=alpha,
+    sim_test = sde_sim_func(N=N,T=T,v_func=linear_func,alpha=alpha,
                             beta=beta_vals[i],Aij = None, Lij = None,
                             sigma=sigma,x0=x0,dt=dt,seed=seed)
     plt.plot(t_vals,sim_test)
-    plt.plot(t_vals,np.mean(sim_test,axis=1),color='black',linewidth=2.0)
+    plt.plot(t_vals,np.mean(sim_test,axis=1),color='black',linewidth=4.0)
     plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
     filename = 'sde_sim_2_{}.pdf'.format(i)
     save_plot(fig_directory,filename)
@@ -156,6 +157,166 @@ plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
 filename = 'sde_sim_3b.pdf'
 save_plot(fig_directory,filename)
 plt.show()
+
+
+
+    
+## Simulate SDE for linear potential, interaction determined by an 
+## interaction kernel (gaussian) which is depends on the distance
+## between particles
+
+mu = 0.5; sd = 0.5
+test_vals = np.linspace(0,1,num=1001)    
+test_out = [influence_func_exp(x,mu=mu,sd=sd) for x in test_vals]
+plt.plot(test_vals,test_out)
+
+N = 31; T = 100; alpha = 0.1; beta = None; Aij = None; Lij = None; sigma = 0.05; 
+x0 = np.linspace(0,3,num=31)
+dt = 0.05; seed = 1; Aij_calc = True
+
+sim_test = sde_sim_func(N=N,T=T,v_func=null_func,alpha=alpha,beta = beta,
+                            Aij = Aij,Lij = Lij,sigma=sigma,x0=x0,dt=dt,
+                            seed=seed,Aij_calc=True, 
+                            Aij_influence_func = influence_func_exp,
+                            mu=.2,sd=.2)#1/np.sqrt(2))
+
+t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
+for j in range(0,N):
+    plt.plot(t_vals,sim_test[:,j],linewidth=1)
+    plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
+filename = 'sde_sim_5_{}.pdf'.format(i)
+save_plot(fig_directory,filename)
+plt.show()
+
+
+
+    
+## Simulate SDE for linear potential, interaction determined by an 
+## interaction kernel (bump function) which depends on the distance
+## between particles
+
+centre = .5; width=1; squeeze = .1
+test_vals = np.linspace(-2,2,num=1001)    
+test_out = [influence_func_bump(x,centre=centre,width=width,squeeze = squeeze) for x in test_vals]
+plt.plot(test_vals,test_out)
+
+N = 31; T = 10; alpha = 0.1; beta = None; Aij = None; Lij = None; sigma = 0.1; 
+x0 = np.linspace(0,3,num=31)
+dt = 0.1; seed = 1; Aij_calc = True
+
+
+## in this simulation, we vary the width of the interaction interval
+width = [0.1,0.2,0.3,0.5,0.7,1.0]
+centre = [0.5*x for x in width]
+squeeze = [0.1]*len(width)
+
+for i in range(len(width)):
+
+    sim_test = sde_sim_func(N=N,T=T,v_func=null_func,alpha=alpha,beta = beta,
+                                Aij = Aij,Lij = Lij,sigma=sigma,x0=x0,dt=dt,
+                                seed=seed,Aij_calc=True, 
+                                Aij_influence_func = influence_func_bump,
+                                centre = centre[i],width=width[i],
+                                squeeze=squeeze[i])#1/np.sqrt(2))
+    
+    t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
+    for j in range(0,N):
+        plt.plot(t_vals,sim_test[:,j],linewidth=1)
+        plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
+    filename = 'sde_sim_6_{}.pdf'.format(i)
+    save_plot(fig_directory,filename)
+    plt.show()
+
+
+
+
+   
+
+# Simulate SDE for linear poential, interaction determined by the influence
+# function (= Aij_influence_func) which takes one value (=strength_low) on 
+# the interval [0,mid], and one value (=strength_up) on [up,mid] (see 
+# Motsch and Tadmor for details)
+
+## influence function    
+def influence_func_2(r,up,mid,strength_up,strength_low):
+    if (0<=r<mid):
+        return strength_low*r
+    if (mid<=r<=up):
+        return strength_up*r
+    else:
+        return 0
+    
+    
+## in this simulation, we vary the range of the interaction (i.e., the value
+## of 'up'); we assume that the interaction has the same strength on [0,mid] 
+## and [mid,up] (i.e. strength_up = strength_low), and keep this value fixed
+
+## parameters
+N = 31; T = 10; alpha = 0.1; beta = None; Aij = None; Lij = None; sigma = 0.15; 
+x0 = np.linspace(0,3,num=31)
+dt = 0.1; seed = 1; Aij_calc = True
+
+## interaction parameters
+up = [0.1,0.2,0.3,0.5,0.7,1.0]
+up_mid = [0]*len(up)
+strength_up = strength_low = 1
+
+## simulate
+for i in range(len(up)):
+
+    sim_test = sde_sim_func(N=N,T=T,v_func=null_func,alpha=alpha,beta = beta,
+                            Aij = Aij,Lij = Lij,sigma=sigma,x0=x0,dt=dt,
+                            seed=seed,Aij_calc=True, 
+                            Aij_influence_func = influence_func_2,
+                            up = up[i],mid=up_mid[i],strength_up= strength_up,
+                            strength_low = strength_low)#1/np.sqrt(2))
+
+    ## plot
+    t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
+    for j in range(0,N):
+        plt.plot(t_vals,sim_test[:,j],linewidth=1)
+        plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
+    filename = 'sde_sim_4_{}.pdf'.format(i)
+    save_plot(fig_directory,filename)
+    plt.show()
+
+
+
+
+## in this simulation, we vary the ratio between the strength of the
+## interaction on [0,mid] and [mid, up] (i.e. the values of strength_low
+## and strength_up); we fix the range of the interaction (i.e. the values of
+## 'mid' and 'up')
+
+N = 100; T = 20; beta = None; Aij = None; Lij = None; sigma = 0.0; 
+x0 = np.random.uniform(0,10,N); dt = 0.01; seed = 1; Aij_calc = True
+
+up = 1
+mid = 1/np.sqrt(2)
+
+strength_up = [0.1,1,1,1]
+strength_low = [1,1,0.5,0.1]
+
+for i in range(len(strength_up)):
+
+    ## Simulation
+    sim_test = sde_sim_func(N=N,T=T,v_func=null_func,alpha=alpha,beta = beta,
+                            Aij = Aij,Lij = Lij,sigma=sigma,x0=x0,dt=dt,
+                            seed=seed,Aij_calc=True, 
+                            Aij_influence_func = influence_func_2,
+                            up = up,mid=mid,strength_up = strength_up[i],
+                            strength_low = strength_low[i])
+
+    ## Plot
+    t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
+    for j in range(0,N):
+        plt.plot(t_vals,sim_test[:,j],linewidth=1)
+        plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
+    filename = 'sde_sim_4_{}_1.pdf'.format(i)
+    save_plot(fig_directory,filename)
+    plt.show()
+
+
 
 #############################
 
