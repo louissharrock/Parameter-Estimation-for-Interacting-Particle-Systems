@@ -100,8 +100,14 @@ def step_size_decrease(T,dt,step_size_init,power,delay=0):
 def linear_func(x,alpha):
     return(alpha*x) 
 
+## Gradient of linear potential (null)
 def null_func(x,alpha):
     return(0)
+
+## Gradient of bi-stable Landua potential
+def landau_func(x,alpha):
+    return alpha*(x**3 - x)
+
 
 #############################
     
@@ -384,8 +390,8 @@ def Aij_grad_calc_func(x,kernel_func,kernel_func_grad,n_param,
 def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
                  Aij=None,Lij=None,sigma=1,x0=1,dt=0.1,seed=1,
                  Aij_calc = False, Aij_calc_func = None,
-                 Aij_influence_func = None, Aij_scale_param = 1, 
-                 **kwargs):
+                 Aij_influence_func = None, Aij_scale_param = 1,
+                 kuramoto = False, **kwargs):
     
     ## set random seed
     np.random.seed(seed)
@@ -404,11 +410,26 @@ def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
     
     ## simulate
     
+    ## parameters
+    if type(alpha) is int:
+        alpha = [alpha]*nt
+        
+    if type(beta) is int:
+        beta = [beta]*nt
+        
+    
     ## if in simple mean field form
     if(beta!=None): 
-        for i in range(0,nt):
-            xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha)*dt - beta*(xt[i,:] - np.mean(xt[i,:]))*dt + sigma*dwt[i,:]
-
+        if not kuramoto:
+            for i in range(0,nt):
+                xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha[i])*dt - beta[i]*(xt[i,:] - np.mean(xt[i,:]))*dt + sigma*dwt[i,:]
+        else:
+            for i in range(0,nt):
+                for j in range(N):
+                    xt[i+1,j] = xt[i,j] - v_func(xt[i,j],alpha[i])*dt - beta[i]/N*np.sum(np.sin(xt[i,j]-xt[i,:]))*dt + sigma*dwt[i,j]
+                while np.any(xt[i+1,:] > + np.pi) or np.any(xt[i+1,:] < - np.pi):
+                    xt[i+1,np.where(xt[i+1,:] > +np.pi)] -= 2.*np.pi
+                    xt[i+1,np.where(xt[i+1,:] < -np.pi)] += 2.*np.pi
     ## if in Aij form
     if(np.any(Aij) or Aij_calc): 
         for i in range(0,nt):
@@ -420,12 +441,12 @@ def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
             
             ## simulate
             for j in range(0,N):
-                xt[i+1,j] = xt[i,j] - v_func(xt[i,j],alpha)*dt - np.dot(Aij[j,:],xt[i,j]-xt[i,:])*dt + sigma*dwt[i,j]
+                xt[i+1,j] = xt[i,j] - v_func(xt[i,j],alpha[i])*dt - np.dot(Aij[j,:],xt[i,j]-xt[i,:])*dt + sigma*dwt[i,j]
                 
     ## if in Lij form           
     if(np.any(Lij)): 
         for i in range(0,nt):
-            xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha)*dt - np.dot(Lij,xt[i,:])*dt + sigma*dwt[i,:]
+            xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha[i])*dt - np.dot(Lij,xt[i,:])*dt + sigma*dwt[i,:]
         
     return xt
 
@@ -495,14 +516,15 @@ def mvsde_sim_func(N=1,T=100,alpha=0.5,beta=0.1,sigma=1,x0=1,dt=0.1,seed=1):
 
 def mean_field_mle_map(N=10,T=100,v_func=linear_func,alpha=0.1,beta=1,
                          sigma=1,x0=2,dt=0.1,seed=1,mle=True,
-                         est_beta = True, est_alpha = False):
+                         est_beta = True, est_alpha = False,
+                         kuramoto = False):
     
     ## number of time steps
     nt = int(np.round(T/dt))
     
     ## compute x_t
     xt = sde_sim_func(N=N,T=T,v_func=v_func,alpha=alpha,beta=beta,
-                      sigma=sigma,x0=x0,dt=dt,seed=seed)
+                      sigma=sigma,x0=x0,dt=dt,seed=seed, kuramoto = kuramoto)
     
     ## compute 'dx_t'
     dxt = np.diff(xt,axis=0)
@@ -559,17 +581,30 @@ def mean_field_mle_map(N=10,T=100,v_func=linear_func,alpha=0.1,beta=1,
             
             ## numerator 
             num = np.zeros((nt,N))
-            for i in range(0,nt):
-                for j in range(0,N):
-                    num[i,j] = -(xt[i,j] - np.mean(xt[i,:]))*dxt[i,j] - v_func(xt[i,j],alpha)*(xt[i,j]-np.mean(xt[i,:]))*dt
-    
+            if not kuramoto:
+                for i in range(0,nt):
+                    for j in range(0,N):
+                        num[i,j] = -(xt[i,j] - np.mean(xt[i,:]))*dxt[i,j] - v_func(xt[i,j],alpha)*(xt[i,j]-np.mean(xt[i,:]))*dt
+                
+            else:
+                for i in range(0,nt):
+                    for j in range(0,N):
+                        num[i,j] = -1/N*np.sum(np.sin(xt[i,j]-xt[i,:]))*dxt[i,j] - v_func(xt[i,j],alpha)*1/N*np.sum(np.sin(xt[i,j]-xt[i,:]))*dt
+                        
+                        
             numerator = np.sum(np.cumsum(num[1:,:],axis=0),axis=1) # integrate over time & sum over particles
             
             ## denominator 
             denom = np.zeros((nt,N))
-            for i in range(0,nt):
-                for j in range(0,N):
-                    denom[i,j] = (xt[i,j] - np.mean(xt[i,:]))**2*dt
+            if not kuramoto:
+                for i in range(0,nt):
+                    for j in range(0,N):
+                        denom[i,j] = (xt[i,j] - np.mean(xt[i,:]))**2*dt
+                        
+            else:        
+                for i in range(0,nt):
+                    for j in range(0,N):
+                        denom[i,j] = (1/N*np.sum(np.sin(xt[i,j]-xt[i,:])))**2*dt
     
             denominator = np.sum(np.cumsum(denom[1:,],axis=0),axis=1) # integrate over time & sum over particles
 
@@ -632,7 +667,7 @@ def mean_field_mle_map(N=10,T=100,v_func=linear_func,alpha=0.1,beta=1,
 
 def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
                    sigma=1,x0=2,dt=0.1,seed=1,step_size=0.01,est_beta = True,
-                   est_alpha = False,alpha0=None,norm=True):
+                   est_alpha = False,alpha0=None,norm=True,kuramoto=False):
     
     ## set random seed
     np.random.seed(seed)
@@ -643,6 +678,13 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
     ## initialise xt
     xt = np.zeros((nt+1,N))
     xt[0,:] = x0
+    
+    ## parameters
+    if type(alpha) is int:
+        alpha = [alpha]*nt
+        
+    if type(beta) is int:
+        beta = [beta]*nt
     
     ## intialise beta_est
     beta_est = np.zeros(nt+1)
@@ -656,7 +698,7 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
     if est_alpha:
         alpha_est[0] = alpha0
     else:
-        alpha_est[0] = alpha
+        alpha_est[0] = alpha[0]
     
     ## step sizes
     if(type(step_size)==float):
@@ -680,9 +722,14 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
     
     for i in range(nt):
         
-        ## simulate sde
-        xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha)*dt - beta*(xt[i,:] - np.mean(xt[i,:]))*dt + sigma*dwt[i,:]
+        if not kuramoto:
+            ## simulate sde
+            xt[i+1,:] = xt[i,:] - v_func(xt[i,:],alpha[i])*dt - beta[i]*(xt[i,:] - np.mean(xt[i,:]))*dt + sigma*dwt[i,:]
         
+        else:
+            for j in range(N):
+                xt[i+1,j] = xt[i,j] - v_func(xt[i,j],alpha[i])*dt - beta[i]/N*np.sum(np.sin(xt[i,j]-xt[i,:]))*dt + sigma*dwt[i,j]
+            
         ## update parameters
         if (est_alpha):
             if norm:
@@ -693,13 +740,28 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
             alpha_est[i+1] = alpha_est[i]
             
         if (est_beta):
-            if norm:
-                beta_est[i+1] = beta_est[i] + step_size[i,1]*1/N*sigma**(-2)*np.sum((-(xt[i,:]-np.mean(xt[i,:])))*(xt[i+1,:]-xt[i,:])-(-(xt[i,:]-np.mean(xt[i,:])))*(-v_func(xt[i,:],alpha_est[i+1])-beta_est[i]*(xt[i,:]-np.mean(xt[i,:])))*dt) # sum over all particles
+            if not kuramoto:
+                if norm:
+                    beta_est[i+1] = beta_est[i] + step_size[i,1]*1/N*sigma**(-2)*np.sum((-(xt[i,:]-np.mean(xt[i,:])))*(xt[i+1,:]-xt[i,:])-(-(xt[i,:]-np.mean(xt[i,:])))*(-v_func(xt[i,:],alpha_est[i+1])-beta_est[i]*(xt[i,:]-np.mean(xt[i,:])))*dt) # sum over all particles
+                else:
+                    beta_est[i+1] = beta_est[i] + step_size[i,1]*sigma**(-2)*((-(xt[i,0]-np.mean(xt[i,])))*(xt[i+1,0]-xt[i,0])-(-(xt[i,0]-np.mean(xt[i,:])))*(-v_func(xt[i,0],alpha_est[i+1])-beta_est[i]*(xt[i,0]-np.mean(xt[i,:])))*dt)
             else:
-                beta_est[i+1] = beta_est[i] + step_size[i,1]*sigma**(-2)*((-(xt[i,0]-np.mean(xt[i,])))*(xt[i+1,0]-xt[i,0])-(-(xt[i,0]-np.mean(xt[i,:])))*(-v_func(xt[i,0],alpha_est[i+1])-beta_est[i]*(xt[i,0]-np.mean(xt[i,:])))*dt)
+                if norm:
+                    grad=0
+                    for j in range(N):
+                        grad += 1/N*sigma**(-2)*((-1/N*np.sum(np.sin(xt[i,j]-xt[i,:])))*(xt[i+1,j]-xt[i,j])-(-1/N*np.sum(np.sin(xt[i,j]-xt[i,:])))*(-v_func(xt[i,j],alpha_est[i+1])-beta_est[i]*(1/N*np.sum(np.sin(xt[i,j]-xt[i,:]))))*dt)
+                    beta_est[i+1] = beta_est[i] + step_size[i,1]*grad
+                        
+                else:
+                    beta_est[i+1] = beta_est[i] + step_size[i,1]*sigma**(-2)*((-1/N*np.sum(np.sin(xt[i,0]-xt[i,:])))*(xt[i+1,0]-xt[i,0])-(-1/N*np.sum(np.sin(xt[i,0]-xt[i,:])))*(-v_func(xt[i,0],alpha_est[i+1])-beta_est[i]*(1/N*np.sum(np.sin(xt[i,0]-xt[i,:]))))*dt)
         else:
             beta_est[i+1] = beta_est[i]
     
+        if kuramoto:
+            while np.any(xt[i+1,:] > + np.pi) or np.any(xt[i+1,:] < - np.pi):
+                xt[i+1,np.where(xt[i+1,:] > +np.pi)] -= 2.*np.pi
+                xt[i+1,np.where(xt[i+1,:] < -np.pi)] += 2.*np.pi
+                
     return beta_est,alpha_est 
         
 ######################################
@@ -1407,3 +1469,10 @@ def Lij_rmle(N=2,T=1000,v_func=linear_func,alpha = 0.1, Lij = None,
         
     return Lij_est_output,xt#,aijs,lijs,aij_grads,lij_grads
 ################################
+
+
+
+
+
+
+
