@@ -26,11 +26,12 @@ import scipy.integrate as integrate
 from scipy.optimize import fsolve
 from sympy import symbols, solve
 
-default_directory = "/Users/ls616"
-code_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code"
-results_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code/results"
-fig_directory = "/Users/ls616/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/notes/figures/sde_sims"
-#fig_directory = "/Users/ls616/Desktop"
+default_directory = "/Users/Louis"
+code_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code"
+results_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code/results"
+results_directory = "/Users/Louis/Documents/PhD/Results/MVSDE Paper/results"
+fig_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/notes/figures/sde_sims"
+fig_directory = "/Users/Louis/Desktop/figures"
 
 import sys
 sys.path.append(code_directory)
@@ -118,7 +119,7 @@ v_fixed_point_func = np.vectorize(fixed_point_func)
 
 
 ## plot fixed point equation
-beta_vals = [0,0.05,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.25,0.5,1.0,2.0,5.0]
+beta_vals = [0.05,0.15,0.25]#[0,0.05,0.1,0.11,0.12,0.13,0.14,0.15,0.16,0.17,0.18,0.19,0.2,0.25,0.5,1.0,2.0,5.0]
 noise_scale = 10; sigma = np.sqrt(2/noise_scale)
 for beta in beta_vals:
     m_vals = np.linspace(-1,1,101)
@@ -132,11 +133,11 @@ for beta in beta_vals:
     plt.plot(m_vals,fixed_point_func_vals,label=r"$R(m)$")
     plt.xlabel(r"$m$")
     plt.ylabel(r"$f(m)$")
-    plt.axhline(y=0,linestyle="--",color="C2") 
-    plt.axvline(x=0,linestyle="--",color="C2") 
-    [plt.axhline(y=i,linestyle="--",color="C2") for i in solution]
-    [plt.axvline(x=i,linestyle="--",color="C2") for i in solution]
-    plt.title(r"Fixed Point Equation: $\theta={0:.2f}$".format(beta))
+    #plt.axhline(y=0,linestyle="--",color="C2") 
+    #plt.axvline(x=0,linestyle="--",color="C2") 
+    #[plt.axhline(y=i,linestyle="--",color="C2") for i in solution]
+    #[plt.axvline(x=i,linestyle="--",color="C2") for i in solution]
+    #plt.title(r"Fixed Point Equation: $\theta={0:.2f}$".format(beta))
     plt.legend(loc="upper left")
     filename = "bistable_fixed_point_theta_{0:.2f}.pdf".format(beta)
     save_plot(fig_directory,filename)
@@ -158,12 +159,13 @@ for i in range(beta_vals.shape[0]):
         m[i] = m_vals[zero_crossings]
 
 plt.margins(x=0.0)
+plt.figure(figsize=(9, 5))
 plt.plot(beta_vals,m,color="C0",label=r"$m_{+}$ and $m_{-}$")
 plt.plot(beta_vals,-m,color="C0")
 plt.plot([0.13,1],[0,0],linestyle="--",color="C1",label=r"$m_0$") 
 plt.xlabel(r"$\theta$")
 plt.ylabel(r"$m$")
-plt.title(r"Bifuraction Diagram")
+#plt.title(r"Bifuraction Diagram")
 plt.legend()#loc="upper right")
 filename = "bistable_bifurcation_bistable.pdf"
 save_plot(fig_directory,filename)
@@ -172,7 +174,7 @@ plt.show()
     
 ## Parameters
 
-beta_vals = [0,0.1,0.2]#np.linspace(0.1,0.25,16)#[0.00,0.01,0.02,0.03,0.04,0.06,0.08,0.10,0.12,0.13,0.14,0.15,0.16,0.18,0.20]
+beta_vals = [0.05,0.15,0.25]#,0.15,0.25]#[0.00,0.01,0.02,0.03,0.04,0.06,0.08,0.10,0.12,0.13,0.14,0.15,0.16,0.18,0.20]
 
 N = 1000; 
 T = 1000; dt = 0.005; t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
@@ -208,6 +210,7 @@ for beta in beta_vals:
     
     ## plots
     plt.hist(np.ndarray.flatten(sim_test[int(.95*len(t_vals)):,:]),bins=100,density=True,stacked=True, label=r"$\hat{p}_{\infty}(x)$")
+    plt.ylim(0,1.7)
     
     x_min = np.min(sim_test[int(.95*len(t_vals)):,:])
     x_max = np.max(sim_test[int(.95*len(t_vals)):,:])
@@ -217,21 +220,29 @@ for beta in beta_vals:
     
     test_vals = np.linspace(x_min,x_max,100)
     
-    m = np.mean(sim_test[int(.95*len(t_vals)):,:])
-    invar2 = [np.exp(-noise_scale*(0.25*x**4 - 0.5*x**2+beta*(0.5*x**2-m*x))) for x in test_vals]
-    invar2 = invar2/np.sum(invar2[1:]*np.diff(test_vals))
-    plt.plot(test_vals,invar2,label=r"$p_{\infty}(x)$ $(\theta>\theta_c)$",linewidth=2)
-    plt.ylim(0,1.6)
-    
     invar = [np.exp(-noise_scale*(0.25*x**4 - 0.5*x**2+beta*0.5*x**2)) for x in test_vals]
     invar = invar/np.sum(invar[1:]*np.diff(test_vals))
-    plt.plot(test_vals,invar,label=r"$p_{\infty}(x)$ $(\theta<\theta_c)$",linewidth=2)
+    plt.plot(test_vals,invar,label=r"$p_{\infty}(x)$ $(\theta<\theta_c)$",linewidth=2,color="C2")
+    
+    if beta>0.14:
+        m = np.mean(sim_test[int(.95*len(t_vals)):,:])
+        invar2 = [np.exp(-noise_scale*(0.25*x**4 - 0.5*x**2+beta*(0.5*x**2-m*x))) for x in test_vals]
+        invar2 = invar2/np.sum(invar2[1:]*np.diff(test_vals))
+        plt.plot(test_vals,invar2,label=r"$p_{\infty}(x)$ $(\theta>\theta_c)$",linewidth=2,color="C1")
+        plt.ylim(0,1.7)
+       # 
+        m = -np.mean(sim_test[int(.95*len(t_vals)):,:])
+        invar2 = [np.exp(-noise_scale*(0.25*x**4 - 0.5*x**2+beta*(0.5*x**2-m*x))) for x in test_vals]
+        invar2 = invar2/np.sum(invar2[1:]*np.diff(test_vals))
+        plt.plot(test_vals,invar2,linewidth=2,color="C1")
+        plt.ylim(0,1.7)
+    
     
     plt.xlabel(r'$x$')
-    plt.ylabel(r'$\mu(x)$')
+    plt.ylabel(r'$p_{\infty}(x)$')
     plt.legend()
-    plt.title(r"Invariant Density: $\theta={0:.2f}$".format(beta))
-    filename = "bistable_potential_N_{}_T_{}_dt_{}_alpha_{}_beta{}_noise_scale_{}.pdf".format(beta,N,T,dt,alpha,beta,noise_scale)
+    #plt.title(r"Invariant Density: $\theta={0:.2f}$".format(beta))
+    filename = "bistable_potential_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}.pdf".format(N,T,dt,alpha,beta,noise_scale)
     save_plot(fig_directory,filename)
     plt.show()
     
@@ -253,7 +264,7 @@ v_fixed_point_func = np.vectorize(fixed_point_func)
 
 
 ## plot solutions of fixed point equation
-beta_vals = [0,0.05,0.1,0.15,0.20,0.21,0.22,0.23,0.24,0.25,0.5,1.0,1.5,2.0,5.0]#,1.01,1.02,1.03,1.04,1.05,1.1,1.2,1.3,1.4,1.5,2.0,3.0,4.0,5.0,10.0]
+beta_vals = [0.1,0.25,1.0]#[0,0.05,0.1,0.15,0.20,0.21,0.22,0.23,0.24,0.25,0.5,1.0,1.5,2.0,5.0]#,1.01,1.02,1.03,1.04,1.05,1.1,1.2,1.3,1.4,1.5,2.0,3.0,4.0,5.0,10.0]
 for beta in beta_vals:
     
     r_vals = np.linspace(0,1,1001)
@@ -268,7 +279,7 @@ for beta in beta_vals:
     plt.ylabel(r"$f(r)$")
     plt.axhline(y=solution,linestyle="--",color="C2")
     plt.axvline(x=solution,linestyle="--",color="C2")
-    plt.title(r"Fixed Point Equation: K={0:.2f}".format(beta))
+    #plt.title(r"Fixed Point Equation: K={0:.2f}".format(beta))
     plt.legend(loc="upper left")
     filename = "kuramoto_fixed_point_K_{0:.2f}".format(beta)
     filename = filename.replace(".","_")
@@ -305,13 +316,13 @@ plt.show()
 
 
 ## Parameters
-beta_vals = [0.75,1.5,3]#[0.00,0.10,0.19,0.21,0.22,0.23,0.24,0.25,0.5,1.0,2.0,5.0]#0.2,0.7]#0.5,1,1.1,1.2,1.5,2.0,3.0,4.0,5.0]#np.linspace(0.1,0.25,16)#[0.00,0.01,0.02,0.03,0.04,0.06,0.08,0.10,0.12,0.13,0.14,0.15,0.16,0.18,0.20]
+beta_vals = [0.1,0.25,1.0]#[0.75,1.5,3]#[0.00,0.10,0.19,0.21,0.22,0.23,0.24,0.25,0.5,1.0,2.0,5.0]#0.2,0.7]#0.5,1,1.1,1.2,1.5,2.0,3.0,4.0,5.0]#np.linspace(0.1,0.25,16)#[0.00,0.01,0.02,0.03,0.04,0.06,0.08,0.10,0.12,0.13,0.14,0.15,0.16,0.18,0.20]
 
 N = 100
-T = 100; dt = 0.1; t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
+T = 200; dt = 0.1; t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
 alpha = 1; beta = beta
 v_func = null_func
-Aij = mean_field_mat(N,beta); Lij = laplacian_mat(N,Aij) 
+#Aij = mean_field_mat(N,beta); Lij = laplacian_mat(N,Aij) 
 noise_scale = 10; sigma = np.sqrt(2/noise_scale)
 
 
@@ -363,7 +374,7 @@ for beta in beta_vals:
     #os.chdir(default_directory)
         
     ## plots
-    n,b,p = plt.hist(final_data,bins=50,density=True,stacked=True, label=r"$\hat{q}_{\infty}(x)$")
+    n,b,p = plt.hist(final_data,bins=50,density=True,stacked=True, label=r"$\hat{p}_{\infty}(x)$")
     
     theta_vals = np.linspace(-np.pi,np.pi,1001)
     
@@ -375,25 +386,26 @@ for beta in beta_vals:
     solution = r_vals[solution_index]
     
     
-    ## invariant measure 2
-    q_theta1_vals = [np.exp(noise_scale*beta*solution*np.cos(theta#-center
-                                                   )) for theta in theta_vals]
-    q_theta1_vals = q_theta1_vals/np.sum(q_theta1_vals[1:]*np.diff(theta_vals))
-    #if beta>1:
-    plt.plot(theta_vals,q_theta1_vals,color="C1",label=r"$q_{\infty}(x)$ $(K>K_c)$",linewidth=2)
-    plt.ylim(0,2.0)
-    
     ## invariant measure 1
-    plt.plot((-np.pi, np.pi), (1/(2*np.pi), 1/(2*np.pi)), "C2-",label=r"$q_{\infty}(x)$ $(K<K_c)$",linewidth=2)
+    plt.plot((-np.pi, np.pi), (1/(2*np.pi), 1/(2*np.pi)), "C2-",label=r"$p_{\infty}(x)$ $(\theta<\theta_c)$",linewidth=2)
     plt.plot((-np.pi, -np.pi), (0, 1/(2*np.pi)), "C2-")
     plt.plot((np.pi, np.pi), (0, 1/(2*np.pi)), "C2-")
     #plt.axhline(1/(2*np.pi),xmin=0.05,xmax=0.9,color="C0",label=r"$q_{\infty}(x)$ $(K<1)$",linewidth=2)
+    plt.ylim(0,2.0)
     
+    ## invariant measure 2
+    if beta>0.2:
+        q_theta1_vals = [np.exp(noise_scale*beta*solution*np.cos(theta#-center
+                                                       )) for theta in theta_vals]
+        q_theta1_vals = q_theta1_vals/np.sum(q_theta1_vals[1:]*np.diff(theta_vals))
+        #if beta>1:
+        plt.plot(theta_vals,q_theta1_vals,color="C1",label=r"$p_{\infty}(x)$ $(\theta>\theta_c)$",linewidth=2)
+        plt.ylim(0,2.0)
     
-    plt.xlabel(r"$\theta$")
-    plt.ylabel(r"$q_{\infty}(\theta)$")
+    plt.xlabel(r"$x$")
+    plt.ylabel(r"$p_{\infty}(x)$")
     plt.legend()
-    plt.title(r"Invariant Density: $K={0:.2f}$".format(beta))
+    #plt.title(r"Invariant Density: $K={0:.2f}$".format(beta))
     filename = "kuramoto_potential_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}".format(N,T,dt,alpha,beta,noise_scale)
     filename = filename.replace(".","_")
     filename+= ".pdf"
@@ -1152,15 +1164,16 @@ beta_est_l1_upper = beta_est_l1 + 1.96*np.var(beta_est_mle[nt-2]-beta,axis=1)
 beta_est_l1_lower = beta_est_l1 - 1.96*np.var(beta_est_mle[nt-2]-beta,axis=1)
 fig1, ax1 = plt.subplots()
 ax1.plot(N_vals[10:],beta_est_l1[10:],label=r'$||\hat{\theta}^N_{2,t}-\theta_{2,0}||$')
-ax1.plot(N_vals[10:],.9/np.sqrt(N_vals[10:]),linestyle="--",label=r'$O(N^{-1})$')
+ax1.plot(N_vals[10:],.9/np.sqrt(N_vals[10:]),linestyle="--",label=r'$O(N^{-\frac{1}{2}})$')
 #plt.plot(N_vals[2:],beta_est_l1_upper[2:],color="C1",linestyle="--")
 #plt.plot(N_vals[2:],beta_est_l1_lower[2:],color="C1",linestyle="--")
 ax1.set_xlabel('$N$'); ax1.set_ylabel(r'L1 Error') 
 ax1.set_yscale("log")
+#ax1.set_ylim(0.035,0.3)
 ax1.set_xscale("log")
 ax1.set_xticks([20, 50, 100, 200,400])
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-ax1.legend()
+ax1.legend(loc="upper right")
 filename = 'offline_est_sim_7a_beta_N_20_to_400_big_text.pdf'
 #save_plot(fig_directory,filename)
 plt.show()
@@ -1171,7 +1184,7 @@ alpha_est_l1_upper = alpha_est_l1 + 1.96*np.var(alpha_est_mle[nt-2],axis=1)
 alpha_est_l1_lower = alpha_est_l1 - 1.96*np.var(alpha_est_mle[nt-2],axis=1)
 fig1, ax1 = plt.subplots()
 ax1.plot(N_vals[10:],alpha_est_l1[10:],label=r'$||\hat{\theta}^N_{1,t}-\theta_{1,0}||$')
-ax1.plot(N_vals[10:],.5/np.sqrt(N_vals[10:]),linestyle="--",label=r'$O(N^{-1})$')
+ax1.plot(N_vals[10:],.5/np.sqrt(N_vals[10:]),linestyle="--",label=r'$O(N^{-\frac{1}{2}})$')
 #plt.plot(N_vals[2:],alpha_est_l1_upper[2:],color="C1",linestyle="--")
 #plt.plot(N_vals[2:],alpha_est_l1_lower[2:],color="C1",linestyle="--")
 ax1.set_xlabel('$N$'); ax1.set_ylabel(r'L1 Error') 
@@ -1181,7 +1194,7 @@ ax1.set_xticks([20, 50, 100, 200,400])
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 ax1.legend()
 filename = 'offline_est_sim_7a_alpha_N_20_to_400_big_text.pdf'
-€save_plot(fig_directory,filename)
+#save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -1229,18 +1242,19 @@ beta_est_l1_upper = beta_est_l1 + 1.96*np.var(beta_est_mle-beta,axis=1)
 beta_est_l1_lower = beta_est_l1 - 1.96*np.var(beta_est_mle-beta,axis=1)
 fig1, ax1 = plt.subplots()
 start_index = 500
-ax1.plot(t_vals[start_index:],beta_est_l1[start_index:],label=r'$||\hat{\theta}^N_{1,t}-\theta_{1,0}||$')
-ax1.plot(t_vals[start_index:],1.3/np.sqrt(t_vals[start_index:]),linestyle="--",label=r'$O(t^{-1})$')
+ax1.plot(t_vals[start_index:],beta_est_l1[start_index:],label=r'$||\hat{\theta}^N_{2,t}-\theta_{2,0}||$')
+ax1.plot(t_vals[start_index:],1.9/np.sqrt(t_vals[start_index:]),linestyle="--",label=r'$O(t^{-\frac{1}{2}})$')
 #plt.plot(N_vals[2:],beta_est_l1_upper[2:],color="C1",linestyle="--")
 #plt.plot(N_vals[2:],beta_est_l1_lower[2:],color="C1",linestyle="--")
 ax1.set_xlabel('$t$'); ax1.set_ylabel(r'L1 Error') 
 ax1.set_yscale("log")
+#ax1.set_ylim(0.03,0.34)
 ax1.set_xscale("log")
 ax1.set_xticks([50,100, 200,500,1000,2000])
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-ax1.legend()
+ax1.legend(loc="upper right")
 filename = 'offline_est_sim_8a_beta_T_50_to_2000_big_text.pdf'
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 ## plot (alpha)
@@ -1250,7 +1264,7 @@ alpha_est_l1_lower = alpha_est_l1 - 1.96*np.var(alpha_est_mle-alpha,axis=1)
 fig1, ax1 = plt.subplots()
 start_index = 500
 ax1.plot(t_vals[start_index:],alpha_est_l1[start_index:],label=r'$||\hat{\theta}^N_{1,t}-\theta_{1,0}||$')
-ax1.plot(t_vals[start_index:],.9/np.sqrt(t_vals[start_index:]),linestyle="--",label=r'$O(t^{-1})$')
+ax1.plot(t_vals[start_index:],.9/np.sqrt(t_vals[start_index:]),linestyle="--",label=r'$O(t^{-\frac{1}{2}})$')
 #plt.plot(N_vals[2:],beta_est_l1_upper[2:],color="C1",linestyle="--")
 #plt.plot(N_vals[2:],beta_est_l1_lower[2:],color="C1",linestyle="--")
 ax1.set_xlabel('$t$'); ax1.set_ylabel(r'L1 Error') 
@@ -1260,7 +1274,7 @@ ax1.set_xticks([50, 100, 200,500,1000,2000])
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 ax1.legend()
 filename = 'offline_est_sim_8a_alpha_T_50_to_2000_big_text.pdf'
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -1523,8 +1537,8 @@ plt.show()
 
 ### Estimate interaction strength with Bistable Potential ###
 
-N_vals = [3,5,10,25,50]
-T = 10; dt = 0.1; nt = int(np.round(T/dt))
+N_vals = [2]#,5,10,25,50]
+T = 1000; dt = 0.1; nt = int(np.round(T/dt))
 t_vals = np.linspace(0,T,int(np.round(T/dt))+1); t_vals = t_vals[1:t_vals.shape[0]-1]
 alpha = 1; beta = .1;
 noise_scale = 10; sigma = np.sqrt(2/noise_scale)
@@ -1547,10 +1561,10 @@ for i in range(len(N_vals)):
         
 
 ## save!
-os.chdir(results_directory)
-filename = 'bistable_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}'.format(N_vals,T,dt,alpha,beta,noise_scale,n_seeds)
+#os.chdir(results_directory)
+#filename = 'bistable_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}'.format(N_vals,T,dt,alpha,beta,noise_scale,n_seeds)
 #np.save(filename,beta_est_mle)
-os.chdir(default_directory)
+#os.chdir(default_directory)
 
 ## reopen!
 #os.chdir(results_directory)
@@ -1561,12 +1575,15 @@ os.chdir(default_directory)
 # plot l1 errors 
 for i in range(len(N_vals)):
     N=N_vals[i]
-    plt.plot(t_vals[10:],np.mean(abs(beta-beta_est_mle[10:,i,:]),axis=1),label=r"$N={}$".format(N),linewidth=2)
-plt.xlabel('t'); plt.ylabel(r'$\mathbb{L}_1$ Error')#'|\beta-\hat{\beta}_{\mathrm{MLE}}|$')
+    plt.plot(t_vals[1000:],np.mean(abs(beta-beta_est_mle[1000:,i,:]),axis=1),label=r"$||\hat{\theta}_{t}^N-\theta||$",linewidth=2)
+plt.plot(t_vals[1000:],.7/np.sqrt(t_vals[1000:]),linestyle="--",label=r'$O(t^{-\frac{1}{2}})$')
+plt.xlabel('t'); plt.ylabel(r'L1 Error')#'|\beta-\hat{\beta}_{\mathrm{MLE}}|$')
 plt.legend()
-plt.title(r"Offline MLE (Bistable Potential): $\theta_0={}$".format(beta))
+#plt.title(r"Offline MLE (Bistable Potential): $\theta_0={}$".format(beta))
 filename = 'bistable_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_sigma_{}_nsims_{}.pdf'.format(N_vals,T,dt,alpha,beta,sigma,n_seeds)
-#save_plot(fig_directory,filename)
+plt.yscale("log")
+plt.xscale("log")
+save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -1575,7 +1592,7 @@ plt.show()
 
 ### Compare MSE of MLE as function of N (fixed T) for Bistable Potential ###
 
-N_vals=np.linspace(10,200,39);
+N_vals=np.linspace(10,200,96);
 T = 0.5; dt = 0.1; nt = int(round(T/dt))
 t_vals = np.linspace(0,T,int(np.round(T/dt))+1); t_vals = t_vals[1:t_vals.shape[0]-1]
 alpha = 1; beta = 0.2
@@ -1618,17 +1635,17 @@ for i in range(N_vals.shape[0]):
 
 ## plot L1 error
 fig1, ax1 = plt.subplots()
-ax1.plot(N_vals,np.mean(abs(beta_est_mle[nt-2,:,:]-beta),axis=1),label="L1 Error")
+ax1.plot(N_vals,np.mean(abs(beta_est_mle[nt-2,:,:]-beta),axis=1),label=r"$||\hat{\theta}_{t}^N-\theta||$")
 ax1.plot(N_vals,.8/np.sqrt(N_vals),linestyle="--",label=r'$O(N^{-\frac{1}{2}})$')
-ax1.set_xlabel('$N$'); ax1.set_ylabel(r'Offline MLE') 
+ax1.set_xlabel('$N$'); ax1.set_ylabel(r'L1 Error') 
 ax1.set_yscale("log")
 ax1.set_xscale("log")
 ax1.set_xticks([10,20, 50, 100,200])
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
 ax1.legend()
-ax1.set_title(r"Offline MLE (Bistable Potential): $\theta_0={}$".format(beta))
+#ax1.set_title(r"Offline MLE (Bistable Potential): $\theta_0={}$".format(beta))
 filename = 'bistable_MLE_L1_Error_multipleN_Nmin_{}_Nmax_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}.pdf'.format(N_vals[0],N_vals[N_vals.shape[0]-1],T,dt,alpha,beta,noise_scale,seed_vals.shape[0])
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -1639,14 +1656,14 @@ plt.show()
 
 ### Estimate interaction strength with Kuramoto Interaction ###
 
-N_vals = [2,3,5,10,25,50]
-T = 10; dt = 0.1; nt = int(np.round(T/dt))
+N_vals = [3,5,10,25,50]
+T = 100; dt = 0.1; nt = int(np.round(T/dt))
 t_vals = np.linspace(0,T,int(np.round(T/dt))+1); t_vals = t_vals[1:t_vals.shape[0]-1]
-alpha = 1; beta = .9;
+alpha = 1; beta = .1;
 noise_scale = 10; sigma = np.sqrt(2/noise_scale)
-v_func = null_func
+v_func = linear_func
 est_beta = True; est_alpha = False
-n_seeds = 500
+n_seeds = 100
 beta_est_mle = np.zeros((nt-1,len(N_vals),n_seeds))
 kuramoto=True
 
@@ -1665,10 +1682,10 @@ for i in range(len(N_vals)):
         
 
 ## save!
-#os.chdir(results_directory)
-#filename = 'kuramoto_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}'.format(N_vals,T,dt,alpha,beta,noise_scale,n_seeds)
-#np.save(filename,beta_est_mle)
-#os.chdir(default_directory)
+os.chdir(results_directory)
+filename = 'kuramoto_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}'.format(N_vals,T,dt,alpha,beta,noise_scale,n_seeds)
+np.save(filename,beta_est_mle)
+os.chdir(default_directory)
 
 ## reopen!
 #os.chdir(results_directory)
@@ -1677,15 +1694,19 @@ for i in range(len(N_vals)):
 #os.chdir(default_directory)
 
     
-# plot l1 errors 
-for i in range(1,len(N_vals)):
+# plot l1 errors
+for i in range(0,len(N_vals)):
     N=N_vals[i]
-    plt.plot(t_vals[20:],np.mean(abs(beta-beta_est_mle[20:,i,:]),axis=1),label=r"$N={}$".format(N),linewidth=2)
-plt.xlabel('t'); plt.ylabel(r'$\mathbb{L}_1$ Error')#'|\beta-\hat{\beta}_{\mathrm{MLE}}|$')
-plt.legend()
-plt.title(r"Offline MLE (Kuramoto Model): $K_0={}$".format(beta))
+    plt.plot(t_vals[100:],np.mean(abs(beta-beta_est_mle[100:,i,:]),axis=1),label=r"$N={}$".format(N),linewidth=2)
+plt.xlabel('t'); plt.ylabel(r'L1 Error')#'|\beta-\hat{\beta}_{\mathrm{MLE}}|$')
+plt.yscale("log")
+plt.xscale("log")
+plt.plot(t_vals[100:],1.2/np.sqrt(t_vals[100:]),linestyle="--",label=r'${O(t^{-\frac{1}{2}})}$',color="black")
+plt.legend(ncol=2,columnspacing=1)
+plt.ylim(0.014,2)
+#plt.title(r"Offline MLE (Kuramoto Model): $K_0={}$".format(beta))
 filename = 'kuramoto_MLE_L1_Error_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_sigma_{}_nsims_{}.pdf'.format(N,T,dt,alpha,beta,sigma,n_seeds)
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -1694,39 +1715,41 @@ plt.show()
 
 ### Compare MSE of MLE as function of N (fixed T) for Kuramoto Potential ###
 
-N_vals=np.linspace(10,200,39); print(N_vals)
-T = 0.5; dt = 0.1; nt = int(round(T/dt))
-t_vals = np.linspace(0,T,int(np.round(T/dt))+1); t_vals = t_vals[1:t_vals.shape[0]-1]
-alpha = 1; beta = 0.9
-v_func = landau_func
+N_vals=np.linspace(10,200,96); print(N_vals)
+T_vals=[0.5,1.0,1.5,2.0,2.5]; dt = 0.1; 
+alpha = 1; beta = 0.1
+v_func = linear_func
 noise_scale = 10; sigma = np.sqrt(2/noise_scale)
 n_runs = 500; seed_vals=np.linspace(1,n_runs,n_runs);
 est_alpha = False; est_beta = True
 kuramoto = True
 
 ## compute MLE
-beta_est_mle = np.zeros((nt-1,N_vals.shape[0],seed_vals.shape[0]))
-for i in range(N_vals.shape[0]):
-    for j in range(seed_vals.shape[0]):
-        x0 = np.linspace(-2,2,int(N_vals[i]))
-        est_mle = mean_field_mle_map(N=int(N_vals[i]),T=T,
-                                               v_func=v_func,alpha=alpha,
-                                               beta=beta,sigma=sigma,x0=x0,
-                                               dt=dt,seed=int(seed_vals[j]),
-                                               mle=True,est_beta = est_beta,
-                                               est_alpha = est_alpha,
-                                               kuramoto = kuramoto)
-        beta_est_mle[:,i,j] = est_mle
-        if j%5==0:
-            print(j)
-    
-    print(i)
+beta_est_mle = np.zeros((len(T_vals),N_vals.shape[0],seed_vals.shape[0]))
+for l in range(len(T_vals)):
+    for i in range(N_vals.shape[0]):
+        for j in range(seed_vals.shape[0]):
+            N = N_vals[i]; T = T_vals[l]
+            x0 = np.linspace(-2,2,int(N))
+            nt = int(round(T/dt))
+            t_vals = np.linspace(0,T,int(np.round(T/dt))+1); t_vals = t_vals[1:t_vals.shape[0]-1]
+            est_mle = mean_field_mle_map(N=int(N_vals[i]),T=T_vals[l],
+                                                   v_func=v_func,alpha=alpha,
+                                                   beta=beta,sigma=sigma,x0=x0,
+                                                   dt=dt,seed=int(seed_vals[j]),
+                                                   mle=True,est_beta = est_beta,
+                                                   est_alpha = est_alpha,
+                                                   kuramoto = kuramoto)
+            beta_est_mle[l,i,j] = est_mle[nt-2]
+       
+        print(i)
+    print(l)
     
 
    
 ## save!
-#os.chdir(results_directory)
-#filename = 'kuramoto_MLE_L1_Error_multipleN_Nmin_{}_Nmax_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}'.format(N_vals[0],N_vals[N_vals.shape[0]-1],T,dt,alpha,beta,noise_scale,seed_vals.shape[0])
+#os.chdir(fig_directory)
+#filename = 'kuramoto_MLE_L1_Error_multipleN_Nmin_{}_Nmax_{}_Tvals_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}.pdf'.format(N_vals[0],N_vals[N_vals.shape[0]-1],T_vals,dt,alpha,beta,noise_scale,seed_vals.shape[0])
 #np.save(filename,beta_est_mle)
 #os.chdir(default_directory)
 
@@ -1738,16 +1761,22 @@ for i in range(N_vals.shape[0]):
 
 ## plot L1 error
 fig1, ax1 = plt.subplots()
-ax1.plot(N_vals,np.mean(abs(beta_est_mle[nt-2]-beta),axis=1),label="L1 Error")
-ax1.plot(N_vals,1/np.sqrt(N_vals),linestyle="--",label=r'$O(N^{-\frac{1}{2}})$')
-ax1.set_xlabel('$N$'); ax1.set_ylabel(r'Offline MLE') 
+for i in range(len(T_vals)):
+    ax1.plot(N_vals[19:],np.mean(abs(beta_est_mle[i,19:,:]-beta),axis=1),label="T={}".format(T_vals[i]))
+ax1.plot(N_vals[19:],1.05/np.sqrt(N_vals[19:]),linestyle="--",label=r'$O(N^{-\frac{1}{2}})$',color="black")
+ax1.set_xlabel('$N$'); ax1.set_ylabel(r'L1 Error') 
 ax1.set_yscale("log")
+ax1.set_ylim(0.041,0.35)
 ax1.set_xscale("log")
-ax1.set_xticks([10,20, 50, 100, 200])
+ax1.get_xaxis().set_minor_formatter(matplotlib.ticker.NullFormatter())
 ax1.get_xaxis().set_major_formatter(matplotlib.ticker.ScalarFormatter())
-ax1.legend()
-ax1.set_title(r"Offline MLE (Kuramoto Model): $K_0={}$".format(beta))
-filename = 'kuramoto_MLE_L1_Error_multipleN_Nmin_{}_Nmax_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}.pdf'.format(N_vals[0],N_vals[N_vals.shape[0]-1],T,dt,alpha,beta,noise_scale,seed_vals.shape[0])
+ax1.set_xticks([50, 100, 200])
+ax1.set_xticklabels(["50", "100", "200"])
+ax1.legend(ncol=2)
+#ax1.set_xticklabels([""]*3)
+#ax1.minorticks_off()
+#ax1.set_title(r"Offline MLE (Kuramoto Model): $K_0={}$".format(beta))
+filename = 'kuramoto_MLE_L1_Error_multipleN_Nmin_{}_Nmax_{}_Tvals_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}_nsims_{}.pdf'.format(N_vals[0],N_vals[N_vals.shape[0]-1],T_vals,dt,alpha,beta,noise_scale,seed_vals.shape[0])
 #save_plot(fig_directory,filename)
 plt.show()
 
@@ -2266,7 +2295,7 @@ seed_vals=np.linspace(1,n_runs,n_runs);
 est_beta = True; est_alpha = False
 np.random.seed(1)
 beta0 = np.random.uniform(0,1,n_runs); 
-alpha0 = [alpha]*N; 
+alpha0 = [alpha]*n_runs; 
 step_size_init = [0.02,0.02] 
 step_size = step_size_init
     
@@ -2317,25 +2346,27 @@ plt.plot(t_vals,beta,linestyle="--",color='black',linewidth=2)
 plt.ylabel(r"$\theta_t^N$")
 plt.xlabel(r"$t$")
 plt.legend()
-plt.title(r"Online MLE: Bistable Potential with $\theta_0=[0.1,0.5]$, $\theta_c=0.14$")
+#plt.title(r"Online MLE: Bistable Potential with $\theta_0=[0.1,0.5]$, $\theta_c=0.14$")
 filename = "bistable_RML_Nmin_{}_Nmax_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_mean_estimate.pdf".format(N_vals[0],N_vals[-1],T,n_runs,noise_scale)
 save_plot(fig_directory,filename)
 plt.show()
 
-## plot l1 errors
+## plot l2 errors
 l1_errors = np.zeros((nt+1,N_vals.shape[0],seed_vals.shape[0]))
 for i in range(bistable_potential_beta_rml.shape[1]):
     for j in range(bistable_potential_beta_rml.shape[2]):
-        l1_errors[:,i,j] = abs(bistable_potential_beta_rml[:,i,j]-beta)
+        l1_errors[:,i,j] = abs(bistable_potential_beta_rml[:,i,j]-beta)**2
 l1_errors = np.mean(l1_errors,axis=2)
 for i in range(N_vals.shape[0]):
     plt.plot(t_vals,l1_errors[:,i],label=r"$N={}$".format(N_vals[i]))
-plt.ylabel(r"$\mathbb{L}^{1}$ Error")
+plt.ylabel(r"L2 Error")
 plt.xlabel(r"$t$")
-plt.legend()
-plt.title(r"Online MLE: Bistable Potential with $\theta_0=[0.1,0.5]$, $\theta_c=0.14$")
-filename = "bistable_RML_Nmin_{}_Nmax_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_l1_error.pdf".format(N_vals[0],N_vals[-1],T,n_runs,noise_scale)
-#save_plot(fig_directory,filename)
+plt.yscale("log")
+plt.ylim(0.00001,10)
+plt.legend(ncol=2)
+#plt.title(r"Online MLE: Bistable Potential with $\theta_0=[0.1,0.5]$, $\theta_c=0.14$")
+filename = "bistable_RML_Nmin_{}_Nmax_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_l2_error.pdf".format(N_vals[0],N_vals[-1],T,n_runs,noise_scale)
+save_plot(fig_directory,filename)
 plt.show()
 
 ## plot variance 
@@ -2396,7 +2427,7 @@ plt.show()
 
 ### RML for Kuramoto Model ###
 
-N_vals=np.array([3,5,10,25])#10,25,50])#,5,10,25,50,100])
+N_vals = np.array([3,5,10,25,50,100])#10,25,50])#,5,10,25,50,100])
 T=4000;  dt=0.1; nt = int(round(T/dt))
 t_vals = np.linspace(0,T,int(np.round(T/dt))+1)
 n_runs = 10
@@ -2415,17 +2446,18 @@ kuramoto=True
 kuramoto_beta_rml = np.zeros((nt+1,N_vals.shape[0],seed_vals.shape[0]))
     
 for i in range(N_vals.shape[0]):
+    N = int(N_vals[i])
     for j in range(seed_vals.shape[0]):
         np.random.seed(j)
-        beta0 = np.random.uniform(1,1.5,N)
-        alpha0 = [alpha]*N; 
+        alpha0 = [alpha]; 
+        beta0 = np.random.uniform(1,1.5,1)
         x0=np.random.uniform(-2,2,N_vals[i])
         est_ips = mean_field_rmle(N=int(N_vals[i]),T=T,v_func=v_func,
-                                  alpha=alpha,beta=beta,beta0=beta0[j],
+                                  alpha=alpha,beta=beta,beta0=beta0,
                                   sigma=sigma,x0=x0,dt=dt,
                                   seed=int(seed_vals[j]),step_size=step_size,
                                   est_beta = est_beta,est_alpha = est_alpha,
-                                  alpha0 = alpha0[j],norm = norm,kuramoto=True)
+                                  alpha0 = alpha0,norm = norm,kuramoto=True)
             
         kuramoto_beta_rml[:,i,j] = est_ips[0]
         
@@ -2439,45 +2471,47 @@ for i in range(N_vals.shape[0]):
     #plt.show()
     
 ## save!
-#os.chdir(results_directory)
-#filename = "bistable_RML_Nmax_{}_Nmin_{}_T_{}_n_sims_{}_beta_time_varying".format(N_vals[0],N_vals[-1],T,n_runs)
-#np.save(filename,bistable_potential_beta_rml)
+#os.chdir(fig_directory)
+#filename = "kuramoto_RML_Nmax_{}_Nmin_{}_T_{}_n_sims_{}_beta_time_varying".format(N_vals[0],N_vals[-1],T,n_runs)
+#np.save(filename,kuramoto_beta_rml)
 #os.chdir(default_directory)
 
 ## reopen!
 #os.chdir(results_directory)
 #filename += ".npy"
-#bistable_potential_beta_rml = np.load(filename)
+#kuramoto_beta_rml = np.load(filename)
 #os.chdir(default_directory)
 
 
 ## plot mean estimate 
 rml_mean = np.mean(kuramoto_beta_rml,axis=2)
 for i in range(N_vals.shape[0]):
-    plt.plot(t_vals,rml_mean[:,i],label=r"$N={}$".format(N_vals[i]))
+    plt.plot(t_vals,rml_mean[:,i],label=r"$N={}$".format(N_vals[i]),linewidth=2)
 plt.plot(t_vals,beta,linestyle="--",color='black',linewidth=2)
 #plt.plot(t_vals,[0.14]*(nt+1),linewidth=2,color="green",linestyle="--")
 plt.ylabel(r"$\theta_t^N$")
 plt.xlabel(r"$t$")
-plt.legend()
-plt.title(r"Online MLE: Kuramoto Model with $K_0=[0.5,0.1]$, $K_c=0.2$")
-filename = "kuramoto_RML_Nmin_{}_Nmax_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_mean_estimate.pdf".format(N_vals[0],N_vals[-1],T,n_runs,noise_scale)
-save_plot(fig_directory,filename)
+plt.legend(ncol=2)
+#plt.title(r"Online MLE: Kuramoto Model with $K_0=[0.5,0.1]$, $K_c=0.2$")
+filename = "kuramoto_RML_Nvals_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_mean_estimate.pdf".format(N_vals,T,n_runs,noise_scale)
+#save_plot(fig_directory,filename)
 plt.show()
 
-## plot l1 errors
+## plot l2 errors
 l1_errors = np.zeros((nt+1,N_vals.shape[0],seed_vals.shape[0]))
 for i in range(kuramoto_beta_rml.shape[1]):
     for j in range(kuramoto_beta_rml.shape[2]):
-        l1_errors[:,i,j] = abs(kuramoto_beta_rml[:,i,j]-beta)
+        l1_errors[:,i,j] = abs(kuramoto_beta_rml[:,i,j]-beta)**2
 l1_errors = np.mean(l1_errors,axis=2)
 for i in range(N_vals.shape[0]):
     plt.plot(t_vals,l1_errors[:,i],label=r"$N={}$".format(N_vals[i]))
-plt.ylabel(r"$\mathbb{L}^{1}$ Error")
+plt.ylabel(r"L2 Error")
 plt.xlabel(r"$t$")
-plt.legend()
-plt.title(r"Online MLE: Kuramoto Model with $K_0=[0.1,0.5]$, $K_c=0.2$")
-filename = "kuramoto_RML_Nmin_{}_Nmax_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_l1_error.pdf".format(N_vals[0],N_vals[-1],T,n_runs,noise_scale)
+plt.yscale("log")
+plt.ylim(np.min(l1_errors)-0.1*np.min(l1_errors),10)
+plt.legend(ncol=2)
+#plt.title(r"Online MLE: Kuramoto Model with $K_0=[0.1,0.5]$, $K_c=0.2$")
+filename = "kuramoto_RML_Nvals_{}_T_{}_n_sims_{}_noise_scale_{}_beta_time_varying_l1_error.pdf".format(N_vals,T,n_runs,noise_scale)
 #save_plot(fig_directory,filename)
 plt.show()
 
@@ -2501,7 +2535,7 @@ final = []
 mid_start = int(.2*len(t_vals)); mid_end = int(.25*len(t_vals))
 final_start = int(.9*len(t_vals)); final_end = int(len(t_vals))
     
-N=20
+N=100
 for j in range(n_sims):
     seed = j
     np.random.seed(seed)
@@ -2520,23 +2554,23 @@ for j in range(n_sims):
     
     
 ## asymptotic density before parameter shift
-plt.hist(mid,density=True,bins=50,label=r"$p_\infty(x)$ for $K={}$".format(beta[0]))
-plt.ylim(0,1.5)
+plt.hist(mid,density=True,bins=100,label=r"$\hat{p}_t(x)$")
+plt.ylim(0,0.8)
 plt.xlabel(r"$x$")
-plt.ylabel(r"$f(x)$")
+plt.ylabel(r"$\hat{p}_{t}(x)$")
 plt.legend()
 filename = "kuramoto_RML_N_{}_T_{}_n_sims_{}_beta_{}_asympotic_density.pdf".format(N,T,n_runs,beta[0])
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 ## asymptotic density after parameter shift
-plt.hist(final,density=True,bins=50,label=r"$p_\infty(x)$ for $K={}$".format(beta[-1]))
-plt.ylim(0,1.5)
+plt.hist(final,density=True,bins=100,label=r"$\hat{p}_t(x)$")
+plt.ylim(0,0.8)
 plt.xlabel(r"$x$")
-plt.ylabel(r"$f(x)$")
+plt.ylabel(r"$\hat{p}_{t}(x)$")
 plt.legend()
 filename = "kuramoto_RML_N_{}_T_{}_n_sims_{}_beta_{}_asymptotic_density.pdf".format(N,T,n_runs,beta[-1])
-#save_plot(fig_directory,filename)
+save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -3824,8 +3858,8 @@ for z in N_vals:
 
 
 ## general parameters
-N = 40; T = 100; alpha = 0; beta = None; Aij = None; Lij = None; sigma = 0.3; 
-x0 = np.linspace(0,6,N); dt = 0.05; seed = 2; v_func = null_func; 
+N = 40; T = 200; alpha = 0; beta = None; Aij = None; Lij = None; sigma = 0.3; 
+x0 = np.linspace(0,5,N); dt = 0.1; seed = 2; v_func = null_func; 
 
 ## interaction parameters
 Aij_calc = True; Aij_influence_func = influence_func_mult_bump; 
@@ -3833,8 +3867,8 @@ Aij_calc_func = Aij_calc_func;
 Aij_scale_param = 2 #use 0.8 when using row sum normalisation in Aij
 
 ## param estimation parameters
-param_est_indices = [0,3]; param_est_init = [1,1,.01,-0.4,1,0.01]
-n_param = 6; param_true = [-0.1,1,0.01,0.4,1,0.01]; 
+param_est_indices = [0,3]; param_est_init = [1.2,1,.01,-0.4,1,0.01]
+n_param = 6; param_true = [0.1,1,0.01,0.5,1,0.01];  #first param was -0.1 before
 centre = [param_true[0],param_true[3]]; 
 width = [param_true[1],param_true[4]]; 
 squeeze = [param_true[2],param_true[5]]; 
@@ -3846,12 +3880,12 @@ plt.plot(x_vals,y_vals)
 plt.show()
 
 ## step size parameters
-step_size_init = 0.002
+step_size_init = 0.003
 step_size = step_size_init
 #step_size = step_size_decrease(T=T,dt=dt,step_size_init=step_size_init,power=.5001)
 
 ## parameter estimation
-n_sims = 20
+n_sims = 50
 all_param_est = np.zeros((int((np.round(T/dt))+1),len(param_est_indices),n_sims))
 
 for k in range(n_sims):
@@ -3885,24 +3919,29 @@ for k in range(n_sims):
             plt.xlabel(r'$t$'); plt.ylabel(r'${\theta(t)}$')
     plt.show()
 
+no_plot_ind = [2,6,8,12,13,14,17,18,19,20,22,23,27,28,29,31,32,33,34,35,37,40,41,44,49]#[0,1,3,4,6,8,9,11,13,16,17,19,21,23,26,28,30,32,33,35,37,41,42,43,46]#[1,3,8,9,13,17]
+plot_ind = [x for x in range(n_sims) if x not in no_plot_ind]
 for k in range(n_sims):
-    if k not in [12,15]:
+    if k not in no_plot_ind:
         plt.plot(t_vals,all_param_est[:,0,k]+0.5*width[0],color='C0',linewidth=0.9)
         plt.plot(t_vals,all_param_est[:,1,k]+0.5*width[0],color='C1',linewidth=0.9)
         plt.axhline(param_true[0]+0.5*width[0],color="C2",linestyle="--")
         plt.axhline(param_true[3]+0.5*width[0],color="C2",linestyle="--")
-        plt.xlabel(r'$t$'); plt.ylabel(r'${\theta(t)}$')
-plt.plot(t_vals,np.mean(all_param_est,axis=2)+0.5*width[0],color="black",linewidth=3)
-filename = 'online_est_sim_8_2.pdf'.format(i)
+        plt.xlabel(r'$t$'); plt.ylabel(r'${\theta^N_t}$')
+plt.plot(t_vals,np.mean(all_param_est[:,:,plot_ind],axis=2)+0.5*width[0],color="black",linewidth=3)
+plt.plot(t_vals,np.mean(all_param_est[:,:,plot_ind],axis=2)+0.5*width[0]+np.sqrt(np.var(all_param_est[:,:,plot_ind],axis=2)),color="black",linewidth=2,linestyle="--")
+plt.plot(t_vals,np.mean(all_param_est[:,:,plot_ind],axis=2)+0.5*width[0]-np.sqrt(np.var(all_param_est[:,:,plot_ind],axis=2)),color="black",linewidth=2,linestyle="--")
+filename = "two_bump_N_{}_T_{}_sigma_{}_x0_{}_dt_{}_seed_{}_Aijscale_{}_paraminit_{}_paramtrue_{}_stepsize_{}_nsims_{}.pdf".format(N,T,sigma,x0[-1],dt,seed,Aij_scale_param,[param_est_init[0],param_est_init[3]],[param_true[0],param_true[3]],step_size_init,n_sims)
 save_plot(fig_directory,filename)
 plt.show()
 
 
 ## save simulations!
-if False:
+if True:
     
     os.chdir(results_directory)
-    np.save("all_param_est_mult_bump_2",all_param_est)
+    filename = "two_bump_N_{}_T_{}_sigma_{}_x0_{}_dt_{}_seed_{}_Aijscale_{}_paraminit_{}_paramtrue_{}_stepsize_{}_nsims_{}".format(N,T,sigma,x0[-1],dt,seed,Aij_scale_param,[param_est_init[0],param_est_init[3]],[param_true[0],param_true[3]],step_size_init,n_sims)
+    np.save("two_bump_N_{}_T_{}_sigma_{}_x0_{}_dt_{}_seed_{}_Aijscale_{}_paraminit_{}_paramtrue_{}_stepsize_{}_nsims_{}",all_param_est)
     os.chdir(default_directory)
     
     ## these were the settings!
@@ -3950,7 +3989,79 @@ if False:
     # sigma = 0.3
     # dt = 0.05
     
+    
+    
+    ## for thesis
+    
+    ## plot 1
+    
+    ## general parameters
+    #N = 40; T = 200; alpha = 0; beta = None; Aij = None; Lij = None; sigma = 0.3; 
+    #x0 = np.linspace(0,10,N); dt = 0.05; seed = 2; v_func = null_func; 
+    
+    ## interaction parameters
+    #Aij_calc = True; Aij_influence_func = influence_func_mult_bump; 
+    #Aij_calc_func = Aij_calc_func; 
+    #Aij_scale_param = 2 #use 0.8 when using row sum normalisation in Aij
+    
+    ## param estimation parameters
+    #param_est_indices = [0,3]; param_est_init = [1,1,.01,-0.4,1,0.01]
+    #n_param = 6; param_true = [0.1,1,0.01,0.4,1,0.01];  #first param was -0.1 before
+    #centre = [param_true[0],param_true[3]]; 
+    #width = [param_true[1],param_true[4]]; 
+    #squeeze = [param_true[2],param_true[5]]; 
+    
+    ## plot interaction kernel
+    #x_vals = np.linspace(0,1.5,201)
+    #y_vals = [influence_func_mult_bump(x,centre,width,squeeze) for x in x_vals]
+    #plt.plot(x_vals,y_vals)
+    #plt.show()
+    
+    ## step size parameters
+    #step_size_init = 0.002
+    #step_size = step_size_init
+    #step_size = step_size_decrease(T=T,dt=dt,step_size_init=step_size_init,power=.5001)
+    
+    ## parameter estimation
+    #n_sims = 50
+    #all_param_est = np.zeros((int((np.round(T/dt))+1),len(param_est_indices),n_sims))
 
+    #no_plot_ind = [0,1,3,4,6,8,9,11,13,16,17,19,21,23,26,28,30,32,33,35,37,41,42,43,46]
+    
+    
+    ## plot 2
+    ## general parameters
+    #N = 40; T = 200; alpha = 0; beta = None; Aij = None; Lij = None; sigma = 0.3; 
+    #x0 = np.linspace(0,5,N); dt = 0.1; seed = 2; v_func = null_func; 
+    
+    ## interaction parameters
+    #Aij_calc = True; Aij_influence_func = influence_func_mult_bump; 
+    #Aij_calc_func = Aij_calc_func; 
+    #Aij_scale_param = 2 #use 0.8 when using row sum normalisation in Aij
+    
+    ## param estimation parameters
+    #param_est_indices = [0,3]; param_est_init = [1.2,1,.01,-0.4,1,0.01]
+    #n_param = 6; param_true = [0.1,1,0.01,0.5,1,0.01];  #first param was -0.1 before
+    #centre = [param_true[0],param_true[3]]; 
+    #width = [param_true[1],param_true[4]]; 
+    #squeeze = [param_true[2],param_true[5]]; 
+    
+    ## plot interaction kernel
+    #x_vals = np.linspace(0,1.5,201)
+    #y_vals = [influence_func_mult_bump(x,centre,width,squeeze) for x in x_vals]
+    #plt.plot(x_vals,y_vals)
+    #plt.show()
+    
+    ## step size parameters
+    #step_size_init = 0.003
+    #step_size = step_size_init
+    #step_size = step_size_decrease(T=T,dt=dt,step_size_init=step_size_init,power=.5001)
+    
+    ## parameter estimation
+    #n_sims = 50
+    #no_plot_ind = [2,6,8,12,13,14,17,18,19,20,22,23,27,28,29,31,32,33,34,35,37,40,41,44,49]
+    
+    
 ###############################################
 
 
