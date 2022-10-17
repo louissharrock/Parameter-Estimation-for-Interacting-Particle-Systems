@@ -30,7 +30,7 @@ from copy import deepcopy
 def save_plot(directory,filename):
     os.chdir(directory)
     plt.savefig(filename,bbox_inches='tight')
-    os.chdir("/Users/ls616")
+    #os.chdir("/Users/ls616")
     
 ## Extract upper diagonal matrix (without diagonal entries)
 def upper_tri_indexing(A):
@@ -411,9 +411,15 @@ def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
     ## simulate
     
     ## parameters
+    if type(alpha) is float:
+        alpha = [alpha]*nt
+        
     if type(alpha) is int:
         alpha = [alpha]*nt
         
+    if type(beta) is float:
+        beta = [beta]*nt
+    
     if type(beta) is int:
         beta = [beta]*nt
         
