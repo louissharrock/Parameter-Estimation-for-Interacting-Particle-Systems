@@ -272,10 +272,10 @@ for l in range(n_runs):
 #os.chdir(default_directory)
 
 ## reopen!
-#os.chdir(results_directory)
-#filename = 'online_est_sim_log_lik_beta_plots.npy'
-#lls = np.load(filename)
-#os.chdir(default_directory) 
+os.chdir(results_directory)
+filename = 'online_est_sim_log_lik_beta_plots.pdf.npy'
+lls = np.load(filename)
+os.chdir(default_directory) 
 
 
 ## average over seeds        
@@ -369,16 +369,16 @@ for l in range(n_runs):
     print(l)
 
 ## save!
-os.chdir(results_directory)
-filename = 'online_est_sim_log_lik_alpha_plots.pdf'
-np.save(filename,lls)
-os.chdir(default_directory)
+#os.chdir(results_directory)
+#filename = 'online_est_sim_log_lik_alpha_plots.pdf'
+#np.save(filename,lls)
+#os.chdir(default_directory)
 
 ## reopen!
-#os.chdir(results_directory)
-#filename = 'online_est_sim_log_lik_alpha_plots.npy'
-#lls = np.load(filename)
-#os.chdir(default_directory) 
+os.chdir(results_directory)
+filename = 'online_est_sim_log_lik_alpha_plots.pdf.npy'
+lls = np.load(filename)
+os.chdir(default_directory) 
 
 ## average over seeds        
 lls_average = np.mean(lls,axis=4)
@@ -476,25 +476,26 @@ for m in N_vals:
             #os.chdir(default_directory)
                
             ## load
-            #os.chdir(results_directory)
-            #filename = 'online_est_sim_log_lik_contours_N_{}.pdf.npy'.format(m)
-            #lls = np.load(filename)
-            #os.chdir(default_directory) 
+            os.chdir(results_directory)
+            filename = 'online_est_sim_log_lik_contours_N_{}.pdf.npy'.format(m)
+            lls = np.load(filename)
+            os.chdir(default_directory) 
     
             max_index = np.unravel_index(np.argmax(lls),lls.shape)
             X,Y = np.meshgrid(alpha_vals,beta_vals)
             plt.contourf(X,Y,1/(N*T)*lls.T,levels=30,cbar=True,cmap=cm.viridis)
             #for l in range(5):
             #    plt.plot(alpha_est_rml[:,i,l],beta_est_rml[:,i,l])
-            plt.colorbar()
+            cb = plt.colorbar()
+            cb.ax.set_yticklabels(["{:.2f}".format(i) for i in cb.get_ticks()])
             plt.axvline(alpha_true,linestyle="--",color="C1")
             #plt.axvline(alpha_vals[max_index[0]],linestyle="--",color="C1")
             plt.axhline(beta_true,linestyle="--",color="C1")
             #plt.axhline(beta_vals[max_index[1]],linestyle="--",color="C1")
             plt.xlabel(r'$\theta_1$')
             plt.ylabel(r'$\theta_2$')
-            filename = 'online_est_sim_log_lik_2d_contour_N_{}.pdf'.format(m)
-            #save_plot(fig_directory,filename)
+            filename = 'online_est_sim_log_lik_2d_contour_N_{}_big_text.pdf'.format(m)
+            save_plot(fig_directory,filename)
             plt.show()
             
             fig = plt.figure()
