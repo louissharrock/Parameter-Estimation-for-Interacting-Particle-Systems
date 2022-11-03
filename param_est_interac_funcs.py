@@ -840,7 +840,7 @@ def mvsde_rmle(N=10,T=500,alpha=0.1,beta=1,alpha0=0,beta0=0,sigma=1,x0=2,dt=0.1,
             if norm:
                 alpha_est[i+1] = alpha_est[i] + step_size[i,0]*1/N*sigma**(-2)*np.sum(-xt[i,:]*(xt[i+1,:]-xt[i,:])-(-xt[i,:]*(-alpha_est[i]*xt[i,:]-beta_est[i]*(xt[i,:] - x0*np.exp(-alpha_est[i]*i*dt))))*dt)
             else:
-                alpha_est[i+1] = alpha_est[i] + step_size[i,0]*sigma**(-2)*(-xt[i,0]*(xt[i+1,0]-xt[i,0])-(-xt[i,0]*(-alpha_est[i]*xt[i,0]-beta_est[i]*(xt[i,0] - x0[0]*np.exp(-alpha_est[i]*i*dt))))*dt)
+                alpha_est[i+1] = alpha_est[i] + step_size[i,0]*sigma**(-2)*(-xt[i,0]*(xt[i+1,0]-xt[i,0])-(-xt[i,0]*(-alpha_est[i]*xt[i,0]-beta_est[i]*(xt[i,0] - x0*np.exp(-alpha_est[i]*i*dt))))*dt)
                                 
             if alpha_est[i+1]<0:
                 alpha_est[i+1] = alpha_est[i]/2
@@ -853,7 +853,7 @@ def mvsde_rmle(N=10,T=500,alpha=0.1,beta=1,alpha0=0,beta0=0,sigma=1,x0=2,dt=0.1,
                 beta_est[i+1] = beta_est[i] + step_size[i,1]*1/N*sigma**(-2)*np.sum((-(xt[i,:] - x0*np.exp(-alpha_est[i+1]*i*dt)))*(xt[i+1,:]-xt[i,:])-(-(xt[i,:] - x0*np.exp(-alpha_est[i+1]*i*dt)))*(-alpha_est[i+1]*xt[i,:]-beta_est[i]*(xt[i,:] - x0*np.exp(-alpha_est[i+1]*i*dt)))*dt) # sum over all particles
             
             else:
-                beta_est[i+1] = beta_est[i] + step_size[i,1]*sigma**(-2)*((-(xt[i,0] - x0[0]*np.exp(-alpha_est[i+1]*i*dt)))*(xt[i+1,0]-xt[i,0])-(-(xt[i,0] - x0[0]*np.exp(-alpha_est[i+1]*i*dt)))*(-alpha_est[i+1]*xt[i,0]-beta_est[i]*(xt[i,0] - x0[0]*np.exp(-alpha_est[i+1]*i*dt)))*dt)
+                beta_est[i+1] = beta_est[i] + step_size[i,1]*sigma**(-2)*((-(xt[i,0] - x0*np.exp(-alpha_est[i+1]*i*dt)))*(xt[i+1,0]-xt[i,0])-(-(xt[i,0] - x0*np.exp(-alpha_est[i+1]*i*dt)))*(-alpha_est[i+1]*xt[i,0]-beta_est[i]*(xt[i,0] - x0*np.exp(-alpha_est[i+1]*i*dt)))*dt)
         else:
             beta_est[i+1] = beta_est[i]
                 
