@@ -29,7 +29,7 @@ from copy import deepcopy
 ## Save plots
 def save_plot(directory,filename):
     os.chdir(directory)
-    plt.savefig(filename,bbox_inches='tight')
+    plt.savefig(filename,bbox_inches='tight',dpi=300)
     #os.chdir("/Users/ls616")
     
 ## Extract upper diagonal matrix (without diagonal entries)
