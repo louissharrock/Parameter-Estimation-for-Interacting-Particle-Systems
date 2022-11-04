@@ -166,6 +166,7 @@ if __name__ == '__main__':
     # plotting
     plot_each_run = False
     plot_mean_run = True
+    save_plots = True
 
     all_thetat_est1 = np.zeros((nt+1,2,len(seeds)))
     all_thetat_est2 = np.zeros((nt + 1, 2, len(seeds)))
@@ -200,22 +201,24 @@ if __name__ == '__main__':
 
     if plot_mean_run:
         if est_theta1 is True and est_theta2 is False:
-            plt.plot(t, np.mean(all_thetat_est1,2)[:,0], label="Est1")
-            plt.plot(t, np.mean(all_thetat_est2,2)[:,0], label="Est2")
+            plt.plot(t, np.mean(all_thetat_est1,2)[:,0], label=r"$\theta_{t,1}$ (Estimator 1)")
+            plt.plot(t, np.mean(all_thetat_est2,2)[:,0], label=r"$\theta_{t,1}$ (Estimator 2)")
             plt.axhline(y=alpha, linestyle="--", color="black")
             plt.legend()
-            plt.savefig("results/linear_mvsde/alpha_est.png")
+            if save_plots:
+                plt.savefig("results/linear_mvsde/alpha_est.eps", dpi=300)
             plt.show()
         elif est_theta1 is False and est_theta2 is True:
-            plt.plot(t, np.mean(all_thetat_est1,2)[:,1], label=r"$\theta_{t,1}$ (Estimator 1)")
-            plt.plot(t, np.mean(all_thetat_est2,2)[:,1], label=r"$\theta_{t,1}$ (Estimator 2)")
+            plt.plot(t, np.mean(all_thetat_est1,2)[:,1], label=r"$\theta_{t,2}$ (Estimator 1)")
+            plt.plot(t, np.mean(all_thetat_est2,2)[:,1], label=r"$\theta_{t,2}$ (Estimator 2)")
             plt.axhline(y=beta, linestyle="--", color="black")
             plt.legend()
-            plt.savefig("results/linear_mvsde/beta_est.png")
+            if save_plots:
+                plt.savefig("results/linear_mvsde/beta_est.eps", dpi=300)
             plt.show()
         elif est_theta1 is True and est_theta2 is True:
-            plt.plot(t, np.mean(all_thetat_est1, 2), label=r"$\theta_{t,2}$ (Estimator 1)")
-            plt.plot(t, np.mean(all_thetat_est2, 2), label=r"$\theta_{t,2}$ (Estimator 2)")
+            plt.plot(t, np.mean(all_thetat_est1, 2), label=r"$\theta_{t}$ (Estimator 1)")
+            plt.plot(t, np.mean(all_thetat_est2, 2), label=r"$\theta_{t}$ (Estimator 2)")
             plt.axhline(y=alpha, linestyle="--", color="black")
             plt.axhline(y=beta, linestyle="--", color="black")
             plt.legend()
