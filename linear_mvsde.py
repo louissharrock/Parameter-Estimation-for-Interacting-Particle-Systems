@@ -108,10 +108,12 @@ def linear_mvsde_online_est_two(xt, theta0, theta_true, est_theta1=True, est_the
             -thetat[i, 0] * t) * dt + sigma * np.sqrt(dt) * np.random.randn(1)
 
         ## tilde y_t
-        tildeyt[i + 1, 0] = tildeyt[i, 0] - tildext[i] * dt - (thetat[i, 0] + thetat[i, 1]) * tildeyt[i, 0] * dt - \
-                            thetat[i, 1] * xt[0] * t * np.exp(-thetat[i, 0] * t) * dt
-        tildeyt[i + 1, 1] = tildeyt[i, 1] - tildext[i] * dt - (thetat[i, 0] + thetat[i, 1]) * tildeyt[i, 1] * dt + xt[
-            0] * np.exp(-thetat[i, 0] * t) * dt
+        if est_theta1:
+            tildeyt[i + 1, 0] = tildeyt[i, 0] - tildext[i] * dt - (thetat[i, 0] + thetat[i, 1]) * tildeyt[i, 0] * dt - \
+                                thetat[i, 1] * xt[0] * t * np.exp(-thetat[i, 0] * t) * dt
+        if est_theta2:
+            tildeyt[i + 1, 1] = tildeyt[i, 1] - tildext[i] * dt - (thetat[i, 0] + thetat[i, 1]) * tildeyt[i, 1] * dt + xt[
+                0] * np.exp(-thetat[i, 0] * t) * dt
 
         if est_theta1:
             thetat[i + 1, 0] = thetat[i, 0] + gamma * (-xt[i] + thetat[i, 1] * tildeyt[i, 0]) * (
@@ -135,35 +137,48 @@ if __name__ == '__main__':
     # set parameters
     N = 1
     T = 10000
-    dt = 0.05
-    alpha = 0.5
-    beta = 0.1
+    dt = 0.1
+    alpha = .5
+    beta = .5
     sigma = 1
-    x0 = 5
-    seed = 2
+    x0 = 2
+    seeds = range(10)
 
-    xt = linear_mvsde_sim_func(N, T, alpha, beta, sigma, x0, dt, seed)
+    nt = round(T/dt)
 
-    theta0 = np.array([1.0,0.8])
-    theta_true = np.array([alpha, beta])
-    est_theta1 = False
-    est_theta2 = True
-    gamma = 0.005
+    all_thetat_est1 = np.zeros((nt+1,2,len(seeds)))
+    all_thetat_est2 = np.zeros((nt + 1, 2, len(seeds)))
 
-    thetat_est1 = linear_mvsde_online_est_one(xt, theta0, theta_true, est_theta1, est_theta2, gamma)
-    thetat_est2 = linear_mvsde_online_est_two(xt, theta0, theta_true, est_theta1, est_theta2, gamma)
-    t = [i*dt for i in range(xt.shape[0])]
-    #plt.plot(t, xt)
-    if est_theta1 is True and est_theta2 is False:
-        plt.plot(t, thetat_est1[:,0], label="Est1")
-        plt.plot(t, thetat_est2[:,0], label="Est2")
-        plt.axhline(y=alpha, linestyle="--")
-        plt.legend()
-        plt.show()
-    if est_theta1 is False and est_theta2 is True:
-        plt.plot(t, thetat_est1[:,1], label="Est1")
-        plt.plot(t, thetat_est2[:,1], label="Est2")
-        plt.axhline(y=beta,linestyle="--")
-        plt.legend()
-        plt.show()
+    for idx, seed in enumerate(seeds):
+
+        # simulate mvsde
+        xt = linear_mvsde_sim_func(N, T, alpha, beta, sigma, x0, dt, seed)
+
+        theta0 = np.array([1.0, 0.8])
+        theta_true = np.array([alpha, beta])
+        est_theta1 = True
+        est_theta2 = False
+        gamma = 0.005
+
+        thetat_est1 = linear_mvsde_online_est_one(xt.copy(), theta0, theta_true, est_theta1, est_theta2, gamma)
+        thetat_est2 = linear_mvsde_online_est_two(xt.copy(), theta0, theta_true, est_theta1, est_theta2, gamma)
+
+        all_thetat_est1[:,:,idx] = thetat_est1
+        all_thetat_est2[:,:,idx] = thetat_est2
+
+        plotting = False
+        if plotting:
+            t = [i * dt for i in range(xt.shape[0])]
+            if est_theta1 is True and est_theta2 is False:
+                plt.plot(t, thetat_est1[:,0], label="Est1")
+                plt.plot(t, thetat_est2[:,0], label="Est2")
+                plt.axhline(y=alpha, linestyle="--")
+                plt.legend()
+                plt.show()
+            if est_theta1 is False and est_theta2 is True:
+                plt.plot(t, thetat_est1[:,1], label="Est1")
+                plt.plot(t, thetat_est2[:,1], label="Est2")
+                plt.axhline(y=beta,linestyle="--")
+                plt.legend()
+                plt.show()
 
