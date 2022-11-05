@@ -141,51 +141,62 @@ def linear_mvsde_online_est_two(xt, theta0, theta_true, est_theta1=True, est_the
 
 
 def linear_mvsde_online_est_one_particle_approx(xt, theta0, theta_true, est_theta1, est_theta2, gamma, sigma=1, N=2):
-
     ## number of time steps
     nt = xt.shape[0] - 1
 
     ## initialise theta_t, tilde{x}_t^N, tilde{y}_t^N
     thetat = np.zeros((nt + 1, 2))
-    tildext_N = np.zeros((nt + 1, 1, N))
-    tildeyt_N = np.zeros((nt + 1, 2, N))
+    tildext1_N = np.zeros((nt + 1, N))
+    tildext2_N = np.zeros((nt + 1, N))
+    tildeyt1_N = np.zeros((nt + 1, 2, N))
 
     thetat[0, :] = theta0
-    tildext_N[0,:] = xt[0] * np.ones(N)
-    tildeyt_N[0,:] = np.zeros((2,N))
+    tildext1_N[0, :] = xt[0] * np.ones(N)
+    tildext2_N[0, :] = xt[0] * np.ones(N)
+    tildeyt1_N[0, :] = np.zeros((2, N))
 
     if est_theta1 is False:
         thetat[0, 0] = theta_true[0]
     if est_theta2 is False:
         thetat[0, 1] = theta_true[1]
 
-    dwt = np.sqrt(dt) * np.random.randn(nt + 1, N)
+    dwt1 = np.sqrt(dt) * np.random.randn(nt + 1, N)
+    dwt2 = np.sqrt(dt) * np.random.randn(nt + 1, N)
 
     ## integrate parameter update equations
     for i in tqdm(range(0, nt)):
         t = i * dt
         dxt = xt[i + 1] - xt[i]
 
-        ## tilde x_t^N
-        tildext_N[i + 1, :] = tildext_N[i, :] - (thetat[i,0] + thetat[i,1]) * tildext_N[i, :] * dt + thetat[i,1] * np.mean(tildext_N[i, :]) * dt + sigma * dwt[i, :]
+        ## tilde x_t1^N
+        tildext1_N[i + 1, :] = tildext1_N[i, :] - (thetat[i, 0] + thetat[i, 1]) * tildext1_N[i, :] * dt + thetat[
+            i, 1] * np.mean(tildext1_N[i, :]) * dt + sigma * dwt1[i, :]
 
-        ## tilde y_t^N
+        ## tilde x_t1^N
+        tildext2_N[i + 1, :] = tildext2_N[i, :] - (thetat[i, 0] + thetat[i, 1]) * tildext2_N[i, :] * dt + thetat[
+            i, 1] * np.mean(tildext2_N[i, :]) * dt + sigma * dwt2[i, :]
+
+        ## tilde y_t1^N
         if est_theta1:
-            tildeyt_N[i + 1, 0, :] = tildeyt_N[i, 0, :] - tildext_N[i, :] * dt - (thetat[i,0] + thetat[i,1]) * tildeyt_N[i, 0, :] * dt + thetat[i, 1] * np.mean(tildeyt_N[i, 0, :]) * dt
+            tildeyt1_N[i + 1, 0, :] = tildeyt1_N[i, 0, :] - tildext1_N[i, :] * dt - (
+                        thetat[i, 0] + thetat[i, 1]) * tildeyt1_N[i, 0, :] * dt + thetat[i, 1] * np.mean(
+                tildeyt1_N[i, 0, :]) * dt
 
         if est_theta2:
-            tildeyt_N[i + 1, 1, :] = tildeyt_N[i, 1, :] - tildext_N[i, :] * dt - (thetat[i, 0] + thetat[i, 1]) * tildeyt_N[i, 1, :] * dt + np.mean(tildext_N[i, :]) * dt + thetat[i, 1] * np.mean(tildeyt_N[i, 1, :]) * dt
+            tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] - tildext1_N[i, :] * dt - (
+                        thetat[i, 0] + thetat[i, 1]) * tildeyt1_N[i, 1, :] * dt + np.mean(tildext1_N[i, :]) * dt + \
+                                      thetat[i, 1] * np.mean(tildeyt1_N[i, 1, :]) * dt
 
         ## theta_t
         if est_theta1:
-            thetat[i + 1, 0] = thetat[i, 0] + gamma * (-xt[i] + thetat[i, 1] * np.mean(tildeyt_N[i, 0, :])) * (
-                    dxt - (-(thetat[i, 0] + thetat[i, 1]) * xt[i] + thetat[i, 1] * np.mean(tildext_N[i,:])) * dt)
+            thetat[i + 1, 0] = thetat[i, 0] + gamma * (-xt[i] + thetat[i, 1] * np.mean(tildeyt1_N[i, 0, :])) * (
+                    dxt - (-(thetat[i, 0] + thetat[i, 1]) * xt[i] + thetat[i, 1] * np.mean(tildext2_N[i,:])) * dt)
         else:
             thetat[i + 1, 0] = thetat[i, 0]
 
         if est_theta2:
-            thetat[i + 1, 1] = thetat[i, 1] + gamma * (-xt[i] + np.mean(tildext_N[i, :]) + thetat[i, 1] * np.mean(tildeyt_N[i, 1, :])) * (
-                    dxt - (-(thetat[i, 0] + thetat[i, 1]) * xt[i] + thetat[i, 1] * np.mean(tildext_N[i, :])) * dt)
+            thetat[i + 1, 1] = thetat[i, 1] + gamma * (-xt[i] + np.mean(tildext1_N[i, :]) + thetat[i, 1] * np.mean(tildeyt1_N[i, 1, :])) * (
+                    dxt - (-(thetat[i, 0] + thetat[i, 1]) * xt[i] + thetat[i, 1] * np.mean(tildext2_N[i, :])) * dt)
         else:
             thetat[i + 1, 1] = thetat[i, 1]
 
@@ -247,35 +258,37 @@ def linear_mvsde_online_est_two_particle_approx(xt, theta0, theta_true, est_thet
         else:
             thetat[i + 1, 1] = thetat[i, 1]
 
+    return thetat
+
 
 if __name__ == '__main__':
 
     # simulation parameters
     N_obs = 1
-    T = 10000
+    T = 20000
     dt = 0.1
-    alpha = 0.5
-    beta = 0.1
+    alpha = 1.5
+    beta = 0.7
     sigma = 1
-    seeds = range(1)
+    seeds = range(20)
 
     nt = round(T/dt)
     t = [i * dt for i in range(nt+1)]
 
     # estimation parameters
     gamma = 0.005
-    theta0 = np.array([1.0, 0.8])
+    theta0 = np.array([2.0, 0.2])
     theta_true = np.array([alpha, beta])
     est_theta1 = True
     est_theta2 = False
-    N_est = 1
+    N_est = 2
 
     # plotting
     plot_each_run = False
     plot_mean_run = True
 
     # output
-    save_plots = False
+    save_plots = True
     save_root = "results/linear_mvsde/"
 
     all_thetat_est1 = np.zeros((nt+1, 2, len(seeds)))
@@ -328,7 +341,7 @@ if __name__ == '__main__':
             plt.axhline(y=alpha, linestyle="--", color="black")
             plt.legend()
             if save_plots:
-                plt.savefig(save_root + "alpha_est.eps", dpi=300)
+                plt.savefig(save_root + "alpha_est_all.eps", dpi=300)
             plt.show()
         elif est_theta1 is False and est_theta2 is True:
             plt.plot(t, np.mean(all_thetat_est1,2)[:,1], label=r"$\theta_{t,2}$ (Estimator 1)")
@@ -338,7 +351,7 @@ if __name__ == '__main__':
             plt.axhline(y=beta, linestyle="--", color="black")
             plt.legend()
             if save_plots:
-                plt.savefig(save_root + "beta_est.eps", dpi=300)
+                plt.savefig(save_root + "beta_est_all.eps", dpi=300)
             plt.show()
         elif est_theta1 is True and est_theta2 is True:
             plt.plot(t, np.mean(all_thetat_est1, 2), label=r"$\theta_{t}$ (Estimator 1)")
@@ -349,5 +362,5 @@ if __name__ == '__main__':
             plt.axhline(y=beta, linestyle="--", color="black")
             plt.legend()
             if save_plots:
-                plt.savefig(save_root + "alpha_beta_est.eps", dpi=300)
+                plt.savefig(save_root + "alpha_beta_est_all.eps", dpi=300)
             plt.show()
