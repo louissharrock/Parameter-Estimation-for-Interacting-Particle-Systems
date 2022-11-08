@@ -59,8 +59,9 @@ def erdos_renyi_ips_sim_func(N, T, alpha, beta, p, sigma=1, x0=1, dt=0.1, seed=1
     ## generate erdos renyi graph
     Aij = random_adjacency_matrix(N, p)
     Ni = np.sum(Aij,axis=0)
+    print(Aij[0,:])
     print("p =",p)
-    print("mean Ni/N =",np.round(np.mean((Ni-1)/(N-1)),2))
+    print("Ni/N =",np.round(np.mean((Ni-1)/(N-1)),2))
 
 
     ## simulate
@@ -78,14 +79,14 @@ def erdos_renyi_ips_sim_func(N, T, alpha, beta, p, sigma=1, x0=1, dt=0.1, seed=1
 if __name__ == '__main__':
 
     # parameters
-    N = 20
+    N = 30
     T = 5
     alpha = 0
     beta = 1.0
-    p_vals = [0,0.1,0.2,1.0]
+    p_vals = [0,0.02,0.05,0.1]
     sigma = 1
     x0 = np.random.normal(0,20,N)
-    dt = 0.01
+    dt = 0.1
     seed = 0
 
     nt = round(T / dt)
