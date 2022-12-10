@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import os
 
 
 #############################
@@ -9,15 +10,35 @@ from tqdm import tqdm
 
 ## Gradient of quadratic potential
 def grad_quadratic(x, alpha):
-    return alpha*x
+    return alpha * x
+
+def grad_theta_grad_quadratic(x, alpha):
+    return x
+
+def grad_x_grad_quadratic(x, alpha):
+    return alpha
+
 
 ## Gradient of linear potential (null)
 def grad_linear(x, alpha):
     return 0
 
+def grad_theta_grad_linear(x, alpha):
+    return 0
+def grad_x_grad_linear(x, alpha):
+    return 0
+
+
 ## Gradient of bi-stable (Landau) potential
 def grad_bi_stable(x, alpha):
     return alpha * (x ** 3 - x)
+
+def grad_theta_grad_bi_stable(x, alpha):
+    return x**3 - x
+
+def grad_x_grad_bi_stable(x, alpha):
+    return alpha * (3 * x ** 2 - 1)
+
 
 ## Gradient of sine (Kuramoto) potential
 def grad_kuramoto(x, alpha):
@@ -57,36 +78,33 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
                  Aij_calc=False, Aij_calc_func=None,
                  Aij_influence_func=None, Aij_scale_param=1,
                  kuramoto=False, **kwargs):
-
     # set random seed
     np.random.seed(seed)
 
     # number of time steps
     nt = int(np.round(T / dt))
 
+    # parameters
+    if type(alpha) is float:
+        alpha = [alpha] * (nt + 1)
+
+    if type(alpha) is int:
+        alpha = [alpha] * (nt + 1)
+
+    if type(beta) is float:
+        beta = [beta] * (nt + 1)
+
+    if type(beta) is int:
+        beta = [beta] * (nt + 1)
+
     # initialise xt
     xt = np.zeros((nt + 1, N))
     xt[0, :] = x0
-    xt_test = np.zeros((nt + 1, N))
-    xt_test[0, :] = x0
 
     # brownian motion
     dwt = np.sqrt(dt) * np.random.randn(nt + 1, N)
 
     # simulate
-
-    # parameters
-    if type(alpha) is float:
-        alpha = [alpha] * nt
-
-    if type(alpha) is int:
-        alpha = [alpha] * nt
-
-    if type(beta) is float:
-        beta = [beta] * nt
-
-    if type(beta) is int:
-        beta = [beta] * nt
 
     # if in simple mean field form
     if beta is not None:
@@ -123,7 +141,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
         for i in tqdm(range(0, nt)):
             xt[i + 1, :] = xt[i, :] - grad_v(xt[i, :], alpha[i]) * dt - np.dot(Lij, xt[i, :]) * dt + sigma * dwt[i, :]
 
-    return xt[:, 1]
+    return xt[:, 0]
 
 #######################
 
@@ -153,24 +171,27 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
 ## Outputs:
 ## -> theta_t (online parameter estimate)
 
-def online_est_one(xt, grad_v, grad_theta_grad_v, alpha0, alpha_true, est_alpha, grad_w, grad_theta_grad_w, beta0,
-                   beta_true, est_beta, sigma, gamma, N=2):
+def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true, est_alpha, grad_w,
+                   grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1):
+
+    # set random seed
+    np.random.seed(seed)
 
     # number of time steps
     nt = xt.shape[0] - 1
 
     # parameters
     if type(alpha_true) is float:
-        alpha_true = [alpha_true] * nt
+        alpha_true = [alpha_true] * (nt + 1)
 
     if type(alpha_true) is int:
-        alpha_true = [alpha_true] * nt
+        alpha_true = [alpha_true] * (nt + 1)
 
     if type(beta_true) is float:
-        beta_true = [beta_true] * nt
+        beta_true = [beta_true] * (nt + 1)
 
     if type(beta_true) is int:
-        beta_true = [beta_true] * nt
+        beta_true = [beta_true] * (nt + 1)
 
     # initialise
     alpha_t = np.zeros(nt + 1)
@@ -197,7 +218,6 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, alpha0, alpha_true, est_alpha,
     dwt2 = np.sqrt(dt) * np.random.randn(nt + 1, N)
 
     # integrate parameter update equations
-
     for i in tqdm(range(0, nt)):
 
         t = i * dt
@@ -211,6 +231,7 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, alpha0, alpha_true, est_alpha,
             tildext2_N[i + 1, :] = tildext2_N[i, :] - grad_v(tildext2_N[i, :], alpha_t[i]) * dt \
                                    - beta_t[i] * (tildext2_N[i, :] - np.mean(tildext2_N[i, :])) * dt \
                                    + sigma * dwt2[i, :]
+
         else:
             for j in range(N):
                 tildext1_N[i + 1, j] = tildext1_N[i, j] - grad_v(tildext1_N[i, j], alpha_t[i]) * dt \
@@ -222,17 +243,40 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, alpha0, alpha_true, est_alpha,
 
         # tilde y_t1^N
         if est_alpha:
-            tildeyt1_N[i + 1, 0, :] = 0
+            if grad_w == grad_quadratic:
+                tildeyt1_N[i + 1, 0, :] = tildeyt1_N[i, 0, :] - grad_theta_grad_v(tildext1_N[i, :], alpha_t[i]) * dt \
+                                          - grad_x_grad_v(tildext1_N[i, :], alpha_t[i]) * tildeyt1_N[i, 0, :] * dt \
+                                          - beta_t[i] * (tildeyt1_N[i, 0, :] - np.mean(tildeyt1_N[i, 0, :])) * dt
+            else:
+                tildeyt1_N[i + 1, 0, :] = tildeyt1_N[i, 0, :] ## to do
 
         if est_beta:
-            tildeyt1_N[i + 1, 1, :] = 0
+            if grad_w == grad_quadratic:
+                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] - grad_theta_grad_v(tildext1_N[i, :], alpha_t[i]) * dt \
+                                          - grad_x_grad_v(tildext1_N[i, :], alpha_t[i]) * tildeyt1_N[i, 0, :] * dt \
+                                          - beta_t[i] * (tildeyt1_N[i, 0, :] - np.mean(tildeyt1_N[i, 0, :])) * dt \
+                                          + np.mean(tildext1_N[i, :]) * dt
+            else:
+                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] ## to do
 
-        # theta_t
+
+        # alpha_t
         if est_alpha:
-            alpha_t[i + 1, 0] = 0
+            if grad_w == grad_quadratic:
+                alpha_t[i+1] = alpha_t[i] + gamma \
+                               * (- grad_theta_grad_v(xt[i], alpha_t[i]) + beta_t[i] * np.mean(tildeyt1_N[i, 0, :])) \
+                               * (dxt - (-grad_v(xt[i], alpha_t[i]) - beta_t[i] * (xt[i] - np.mean(tildext2_N[i, :]))) * dt)
+            else:
+                alpha_t[i+1] = alpha_t[i] ## to do
 
+        # beta_t
         if est_beta:
-            beta_t[i + 1, 1] = 0
+            if grad_w == grad_quadratic:
+                beta_t[i + 1] = beta_t[i] + gamma \
+                                * (- grad_theta_grad_v(xt[i], alpha_t[i]) + np.mean(tildext1_N[i, :]) + beta_t[i] * np.mean(tildeyt1_N[i, 1, :])) \
+                                * (dxt - (-grad_v(xt[i], alpha_t[i]) - beta_t[i] * (xt[i] - np.mean(tildext2_N[i, :]))) * dt)
+            else:
+                alpha_t[i + 1] = alpha_t[i] ## to do
 
     return alpha_t, beta_t
 
@@ -241,29 +285,93 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, alpha0, alpha_true, est_alpha,
 
 if __name__ == "__main__":
 
+    # general
+    root = "results/"
+    leaf = "bistable_v_quadratic_w"
+    path = os.path.join(root, leaf)
+    if not os.path.exists(path):
+        os.makedirs(path)
+
     # simulation parameters
     N_obs = 1
-    N_par = 200
-    T = 1000
-    dt = 0.01
-    alpha = 1
+    N_par = 100
+    T = 10000
+    dt = 0.1
+    alpha = 1.5
     grad_v = grad_bi_stable
-    beta = 0.5
+    grad_theta_grad_v = grad_theta_grad_bi_stable
+    grad_x_grad_v = grad_x_grad_bi_stable
+    beta = 0.7
     grad_w = grad_quadratic
-    sigma = np.sqrt(2)
-    seed = 1
-    x0 = 0
+    grad_theta_grad_w = grad_theta_grad_quadratic
+    grad_x_grad_w = grad_x_grad_quadratic
+    sigma = 1
+    seeds = range(5)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # estimation parameters
     gamma = 0.005
-    alpha0 = 2.0; beta0 = 0.2
-    alpha_true = alpha; beta_true = beta
+
+    alpha0 = 2.0
+    alpha_true = alpha
     est_alpha = True
+
+    beta0 = 0.2
+    beta_true = beta
     est_beta = False
+
     N_est = 2
 
-    xt = sde_sim_func(N_par, T, grad_v, alpha, grad_w, beta, sigma=sigma, x0=x0, dt=dt, seed=seed)
+    # plotting
+    plot_each_run = False
+    plot_mean_run = True
 
+    # output
+    save_plots = True
+
+    all_alpha_t = np.zeros((nt + 1, len(seeds)))
+    all_beta_t = np.zeros((nt + 1, len(seeds)))
+
+    for idx, seed in enumerate(seeds):
+
+        print(seed)
+
+        # simulate mvsde
+        x0 = np.random.randn(1)
+        xt = sde_sim_func(N_par, T, grad_v, alpha, grad_w, beta, sigma=sigma, x0=x0, dt=dt, seed=seed)
+
+        alpha_t, beta_t = online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true, est_alpha,
+                                         grad_w, grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma,
+                                         gamma, N_est, seed)
+
+        all_alpha_t[:, idx], all_beta_t[:, idx] = alpha_t, beta_t
+
+        if plot_each_run:
+            if est_alpha and not est_beta:
+                plt.plot(t, alpha_t, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
+                plt.axhline(y=alpha, linestyle="--", color="C1")
+                plt.legend()
+                plt.show()
+            if est_beta and not est_alpha:
+                plt.plot(t, beta_t, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
+                plt.axhline(y=beta, linestyle="--", color="C1")
+                plt.legend()
+                plt.show()
+
+    if plot_mean_run:
+        if est_alpha and not est_beta:
+            plt.plot(t, np.mean(all_alpha_t, 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+            plt.axhline(y=alpha, linestyle="--", color="black")
+            plt.legend()
+            if save_plots:
+                plt.savefig(path + "/alpha_est_all.eps", dpi=300)
+            plt.show()
+        elif est_beta and not est_alpha:
+            plt.plot(t, np.mean(all_beta_t, 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+            plt.axhline(y=beta, linestyle="--", color="black")
+            plt.legend()
+            if save_plots:
+                plt.savefig(path + "/beta_est_all.eps", dpi=300)
+            plt.show()
