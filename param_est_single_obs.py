@@ -294,9 +294,9 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 100
-    T = 1000
-    dt = 0.01
+    N_par = 200
+    T = 10000
+    dt = 0.1
     alpha = 1.5
     grad_v = grad_bi_stable
     grad_theta_grad_v = grad_theta_grad_bi_stable
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     grad_theta_grad_w = grad_theta_grad_quadratic
     grad_x_grad_w = grad_x_grad_quadratic
     sigma = 1
-    seeds = range(1)
+    seeds = range(5)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
@@ -322,14 +322,14 @@ if __name__ == "__main__":
     beta_true = beta
     est_beta = True
 
-    N_est = 2
+    N_est = 100
 
     # plotting
     plot_each_run = False
     plot_mean_run = True
 
     # output
-    save_plots = False
+    save_plots = True
 
     all_alpha_t = np.zeros((nt + 1, len(seeds)))
     all_beta_t = np.zeros((nt + 1, len(seeds)))
