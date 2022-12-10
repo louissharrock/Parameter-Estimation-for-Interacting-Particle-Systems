@@ -319,7 +319,7 @@ def linear_mvsde_online_est_one_particle_approx(xt, alpha0, alpha_true, est_alph
                                 (dxt - (-(alpha_t[i] + beta_t[i]) * xt[i] + beta_t[i] * np.mean(tildext2_N[i, :])) * dt)
 
         if est_beta:
-            beta_t[i + 1] = beta_t[i] + gamma * (-xt[i] + np.mean(tildext1_N[i, :]) + beta_t[i] * np.mean(tildeyt1_N[i, 1, :])) \
+            beta_t[i + 1] = beta_t[i] + gamma * (-(xt[i] + np.mean(tildext1_N[i, :])) + beta_t[i] * np.mean(tildeyt1_N[i, 1, :])) \
                                * (dxt - (-(alpha_t[i] + beta_t[i]) * xt[i] + beta_t[i] * np.mean(tildext2_N[i, :])) * dt)
 
     print(tildext1_N)

@@ -252,9 +252,9 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
 
         if est_beta:
             if grad_w == grad_quadratic:
-                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] - grad_theta_grad_v(tildext1_N[i, :], alpha_t[i]) * dt \
-                                          - grad_x_grad_v(tildext1_N[i, :], alpha_t[i]) * tildeyt1_N[i, 0, :] * dt \
-                                          - beta_t[i] * (tildeyt1_N[i, 0, :] - np.mean(tildeyt1_N[i, 0, :])) * dt \
+                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] \
+                                          - grad_x_grad_v(tildext1_N[i, :], alpha_t[i]) * tildeyt1_N[i, 1, :] * dt \
+                                          - beta_t[i] * (tildeyt1_N[i, 1, :] - np.mean(tildeyt1_N[i, 1, :])) * dt \
                                           + np.mean(tildext1_N[i, :]) * dt
             else:
                 tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] ## to do
@@ -273,7 +273,7 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         if est_beta:
             if grad_w == grad_quadratic:
                 beta_t[i + 1] = beta_t[i] + gamma \
-                                * (- grad_theta_grad_v(xt[i], alpha_t[i]) + np.mean(tildext1_N[i, :]) + beta_t[i] * np.mean(tildeyt1_N[i, 1, :])) \
+                                * (- (xt[i] - np.mean(tildext1_N[i, :])) + beta_t[i] * np.mean(tildeyt1_N[i, 1, :])) \
                                 * (dxt - (-grad_v(xt[i], alpha_t[i]) - beta_t[i] * (xt[i] - np.mean(tildext2_N[i, :]))) * dt)
             else:
                 alpha_t[i + 1] = alpha_t[i] ## to do
@@ -295,8 +295,8 @@ if __name__ == "__main__":
     # simulation parameters
     N_obs = 1
     N_par = 100
-    T = 10000
-    dt = 0.1
+    T = 1000
+    dt = 0.01
     alpha = 1.5
     grad_v = grad_bi_stable
     grad_theta_grad_v = grad_theta_grad_bi_stable
@@ -306,7 +306,7 @@ if __name__ == "__main__":
     grad_theta_grad_w = grad_theta_grad_quadratic
     grad_x_grad_w = grad_x_grad_quadratic
     sigma = 1
-    seeds = range(5)
+    seeds = range(1)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
@@ -316,11 +316,11 @@ if __name__ == "__main__":
 
     alpha0 = 2.0
     alpha_true = alpha
-    est_alpha = True
+    est_alpha = False
 
-    beta0 = 0.2
+    beta0 = 0.3
     beta_true = beta
-    est_beta = False
+    est_beta = True
 
     N_est = 2
 
@@ -329,7 +329,7 @@ if __name__ == "__main__":
     plot_mean_run = True
 
     # output
-    save_plots = True
+    save_plots = False
 
     all_alpha_t = np.zeros((nt + 1, len(seeds)))
     all_beta_t = np.zeros((nt + 1, len(seeds)))
