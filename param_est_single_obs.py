@@ -200,7 +200,14 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
 ## -> theta_t (online parameter estimate)
 
 def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true, est_alpha, grad_w,
-                   grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1):
+                   grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1,
+                   fitzhugh=False, yt=None, gamma0=None, gamma_true=None, est_gamma=False):
+
+    # check inputs
+    if fitzhugh:
+        assert yt is not None
+        assert gamma0 is not None
+        assert gamma_true is not None
 
     # set random seed
     np.random.seed(seed)
@@ -310,8 +317,16 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
 
 #######################
 
+
 def online_est_two(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true, est_alpha, grad_w,
-                   grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1):
+                   grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1,
+                   fitzhugh=False, yt=None, gamma0=None, gamma_true=None, est_gamma=False):
+
+    # check inputs
+    if fitzhugh:
+        assert yt is not None
+        assert gamma0 is not None
+        assert gamma_true is not None
 
     # set random seed
     np.random.seed(seed)
