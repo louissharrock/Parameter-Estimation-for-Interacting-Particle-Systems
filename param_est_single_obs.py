@@ -72,12 +72,12 @@ def grad_kuramoto(x, alpha):
 ## Outputs:
 ## -> x_t^{i} = x_t^{1} (a single particle from the IPS)
 
-def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
-                 grad_w=grad_quadratic, beta=None, Aij=None,
+def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
+                 grad_w=grad_quadratic, beta=0.1, Aij=None,
                  Lij=None, sigma=1, x0=1, dt=0.1, seed=1,
                  Aij_calc=False, Aij_calc_func=None,
                  Aij_influence_func=None, Aij_scale_param=1,
-                 kuramoto=False, fitzhugh=False, y0=None, gamma=None,
+                 kuramoto=False, fitzhugh=False, y0=1, gamma=2,
                  **kwargs):
 
     # check inputs
@@ -133,9 +133,9 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
                                 xt[i, :] - np.mean(xt[i, :])) * dt + sigma * dwt[i, :]
             if fitzhugh:
                 for i in tqdm(range(0, nt)):
-                    xt[i + 1, :] = xt[i, :] - (1 / 3 * xt[i, :] ** 3 - xt[i, :] - yt[i, :]) * dt \
+                    xt[i + 1, :] = xt[i, :] - alpha[i] * ((1 / 3 * xt[i, :] ** 3 - xt[i, :]) + yt[i, :]) * dt \
                                    - beta[i] * (xt[i, :] - np.mean(xt[i, :])) * dt + sigma * dwt[i, :]
-                    yt[i + 1, :] = yt[i, :] + (gamma[i] - xt[i, :]) * dt
+                    yt[i + 1, :] = yt[i, :] + (gamma[i] + xt[i, :]) * dt
 
         else:
             for i in tqdm(range(0, nt)):
@@ -166,7 +166,10 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=0.1,
         for i in tqdm(range(0, nt)):
             xt[i + 1, :] = xt[i, :] - grad_v(xt[i, :], alpha[i]) * dt - np.dot(Lij, xt[i, :]) * dt + sigma * dwt[i, :]
 
-    return xt[:, 0]
+    if fitzhugh:
+        return xt[:, 0], yt[:, 0]
+    else:
+        return xt[:, 0]
 
 #######################
 
