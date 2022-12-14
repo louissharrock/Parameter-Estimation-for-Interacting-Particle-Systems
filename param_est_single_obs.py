@@ -394,7 +394,7 @@ def online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                              * (beta_t[i] * tildeyt1_N[i, 2, 0]) \
                              * (dxt - (- alpha_t[i] * (1 / 3 * xt[i] ** 3 - xt[i] + yt[i]) - beta_t[i] * (xt[i] - np.mean(tildext2_N[i, :]))) * dt) \
                              + gamma \
-                             * (dyt - (gamma_t[i] - xt[i]) * dt)
+                             * (dyt - (gamma_t[i] + xt[i]) * dt)
 
     if not fitzhugh:
         return alpha_t, beta_t
@@ -604,7 +604,7 @@ def online_est_two(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                            * (beta_t[i] * tildeyt1_N[i, 2, 0])\
                            * (dxt - (- alpha_t[i] * (1/3*xt[i]**3 - xt[i] + yt[i]) - beta_t[i] * (xt[i] - tildext2_N[i, 0])) * dt) \
                            + gamma \
-                           * (dyt - (gamma_t[i] - xt[i]) * dt)
+                           * (dyt - (gamma_t[i] + xt[i]) * dt)
 
     if not fitzhugh:
         return alpha_t, beta_t
@@ -618,26 +618,27 @@ if __name__ == "__main__":
 
     # general
     root = "results/"
-    leaf = "bistable_v_quadratic_w"
+    leaf = "fitzhugh_nagumo"
     path = os.path.join(root, leaf)
     if not os.path.exists(path):
         os.makedirs(path)
 
     # simulation parameters
     N_obs = 1
-    N_par = 500
-    T = 20000
+    N_par = 50
+    T = 5000
     dt = 0.1
-    alpha = 1.5
+    alpha = 1.0
     grad_v = grad_bi_stable
     grad_theta_grad_v = grad_theta_grad_bi_stable
     grad_x_grad_v = grad_x_grad_bi_stable
-    beta = 0.7
+    beta = 0.1
     grad_w = grad_quadratic
     grad_theta_grad_w = grad_theta_grad_quadratic
     grad_x_grad_w = grad_x_grad_quadratic
     sigma = 1
-    seeds = range(2)
+    fitzhugh=True
+    seeds = range(10)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
@@ -651,9 +652,13 @@ if __name__ == "__main__":
 
     beta0 = 0.3
     beta_true = beta
-    est_beta = True
+    est_beta = False
 
-    N_est = 50
+    gamma0 = 1.0
+    gamma_true = 0.3
+    est_gamma = True
+
+    N_est = 5
 
     # plotting
     plot_each_run = False
@@ -665,40 +670,73 @@ if __name__ == "__main__":
     all_alpha_t = np.zeros((nt + 1, len(seeds), 2))
     all_beta_t = np.zeros((nt + 1, len(seeds), 2))
 
+    if fitzhugh:
+        all_gamma_t = np.zeros((nt + 1, len(seeds), 2))
+
     for idx, seed in enumerate(seeds):
 
         print(seed)
 
         # simulate mvsde
         x0 = np.random.randn(1)
-        xt = sde_sim_func(N_par, T, grad_v, alpha, grad_w, beta, sigma=sigma, x0=x0, dt=dt, seed=seed)
+        y0 = np.random.randn(1)
 
-        alpha_t_one, beta_t_one = online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed)
-        alpha_t_two, beta_t_two = online_est_two(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed)
+        if not fitzhugh:
+            xt = sde_sim_func(N_par, T, grad_v, alpha_true, grad_w, beta_true, sigma=sigma, x0=x0, dt=dt, seed=seed)
+        if fitzhugh:
+            xt, yt = sde_sim_func(N_par, T, grad_v, alpha, grad_w, beta, sigma=sigma, x0=x0, dt=dt, seed=seed,
+                                  fitzhugh=True, y0=y0, gamma=gamma_true)
+
+        if not fitzhugh:
+            alpha_t_one, beta_t_one = online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed)
+            alpha_t_two, beta_t_two = online_est_two(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed)
+        if fitzhugh:
+            alpha_t_one, beta_t_one, gamma_t_one = online_est_one(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                                  alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                                  grad_x_grad_w, beta0, beta_true, est_beta, sigma,
+                                                                  gamma, N_est, seed, fitzhugh, yt, gamma0, gamma_true,
+                                                                  est_gamma)
+            alpha_t_two, beta_t_two, gamma_t_two = online_est_two(xt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                                  alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                                  grad_x_grad_w, beta0, beta_true, est_beta, sigma,
+                                                                  gamma, N_est, seed, fitzhugh, yt, gamma0, gamma_true,
+                                                                  est_gamma)
+
 
         all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0] = alpha_t_one, beta_t_one
         all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1] = alpha_t_two, beta_t_two
 
+        if fitzhugh:
+            all_gamma_t[:, idx, 0] = gamma_t_one
+            all_gamma_t[:, idx, 1] = gamma_t_two
+
         if plot_each_run:
-            if est_alpha and not est_beta:
+            if est_alpha and not est_beta and not est_gamma:
                 plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
                 plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C0")
                 plt.axhline(y=alpha, linestyle="--", color="C1")
                 plt.legend()
                 plt.show()
-            if est_beta and not est_alpha:
+            if est_beta and not est_alpha and not est_gamma:
                 plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
                 plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C0")
                 plt.axhline(y=beta, linestyle="--", color="C1")
                 plt.legend()
                 plt.show()
+            if est_gamma and not est_alpha and not est_beta:
+                plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
+                plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C0")
+                plt.axhline(y=beta, linestyle="--", color="C1")
+                plt.legend()
+                plt.show()
+
 
     if plot_mean_run:
-        if est_alpha and not est_beta:
+        if est_alpha and not est_beta and not est_gamma:
             plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
             plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
             plt.axhline(y=alpha, linestyle="--", color="black")
@@ -706,11 +744,19 @@ if __name__ == "__main__":
             if save_plots:
                 plt.savefig(path + "/alpha_est_all.eps", dpi=300)
             plt.show()
-        elif est_beta and not est_alpha:
+        elif est_beta and not est_alpha and not est_gamma:
             plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
             plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
             plt.axhline(y=beta, linestyle="--", color="black")
             plt.legend()
             if save_plots:
                 plt.savefig(path + "/beta_est_all.eps", dpi=300)
+            plt.show()
+        elif est_gamma and not est_alpha and not est_beta:
+            plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+            plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+            plt.axhline(y=gamma_true, linestyle="--", color="black")
+            plt.legend()
+            if save_plots:
+                plt.savefig(path + "/gamma_est_all.eps", dpi=300)
             plt.show()
