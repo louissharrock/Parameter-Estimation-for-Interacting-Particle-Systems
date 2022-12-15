@@ -8,7 +8,7 @@ import os
 #### POTENTIAL FUNCTIONS ####
 #############################
 
-## Gradient of quadratic potential
+## Gradient of quadratic potential (confinement or interaction)
 def grad_quadratic(x, alpha):
     return alpha * x
 
@@ -19,7 +19,7 @@ def grad_x_grad_quadratic(x, alpha):
     return alpha
 
 
-## Gradient of linear potential (null)
+## Gradient of linear potential (null) (confinement or interaction)
 def grad_linear(x, alpha):
     return 0
 
@@ -29,7 +29,7 @@ def grad_x_grad_linear(x, alpha):
     return 0
 
 
-## Gradient of bi-stable (Landau) potential
+## Gradient of bi-stable (Landau) potential (confinement or interaction)
 def grad_bi_stable(x, alpha):
     return alpha * (x ** 3 - x)
 
@@ -40,7 +40,7 @@ def grad_x_grad_bi_stable(x, alpha):
     return alpha * (3 * x ** 2 - 1)
 
 
-## Gradient of sine (Kuramoto) potential
+## Gradient of sine (Kuramoto) potential (interaction)
 def grad_kuramoto(x, alpha):
     return alpha * np.sin(x)
 
@@ -49,6 +49,20 @@ def grad_theta_grad_kuramoto(x, alpha):
 
 def grad_x_grad_kuramoto(x, alpha):
     return alpha * np.cos(x)
+
+
+## (Gradient of?) Fitzhugh-Nagumo potential (confinement)
+def grad_fitzhugh(x, y, alpha):
+    return alpha * (1 / 3 * x ** 3 - x + y)
+
+
+## (Gradient of?) Cucker-Smale potential (interaction)
+def grad_cucker_smale(x, v, alpha1, alpha2):
+    num = alpha1 * v
+    denom = (1 + x ** 2) ** alpha2
+    return num / denom
+
+
 
 #############################
 
@@ -78,18 +92,25 @@ def grad_x_grad_kuramoto(x, alpha):
 ## Outputs:
 ## -> x_t^{i} = x_t^{1} (a single particle from the IPS)
 
-def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
-                 grad_w=grad_quadratic, beta=0.1, Aij=None,
-                 Lij=None, sigma=1, x0=1, dt=0.1, seed=1,
-                 Aij_calc=False, Aij_calc_func=None,
-                 Aij_influence_func=None, Aij_scale_param=1,
-                 kuramoto=False, fitzhugh=False, y0=1, gamma=2,
-                 **kwargs):
+def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadratic, beta=0.1, Aij=None, Lij=None,
+                 sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=1, gamma=2, cucker_smale=False,
+                 v0=1, beta2=0.5):
 
     # check inputs
     if fitzhugh:
         assert y0 is not None
         assert gamma is not None
+        assert grad_v == grad_fitzhugh
+        assert grad_w == grad_quadratic
+
+    if cucker_smale:
+        assert v0 is not None
+        assert beta2 is not None
+        assert grad_v == grad_linear
+        assert grad_w == grad_cucker_smale
+
+    if kuramoto:
+        assert grad_w == grad_kuramoto
 
     # set random seed
     np.random.seed(seed)
@@ -116,6 +137,12 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
         if type(gamma) is float:
             gamma = [gamma] * (nt+1)
 
+    if cucker_smale:
+        if type(beta2) is int:
+            beta2 = [beta2] * (nt+1)
+        if type(beta2) is float:
+            beta2 = [beta2] * (nt+1)
+
     # initialise xt
     xt = np.zeros((nt + 1, N))
     xt[0, :] = x0
@@ -125,6 +152,11 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
         yt = np.zeros((nt+1, N))
         yt[0, :] = y0
 
+    # initialise vt
+    if cucker_smale:
+        vt = np.zeros((nt+1, N))
+        vt[0, :] = v0
+
     # brownian motion
     dwt = np.sqrt(dt) * np.random.randn(nt + 1, N)
 
@@ -132,40 +164,56 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
 
     # if interaction parameter provided
     if beta is not None:
-        if grad_w == grad_quadratic:
-            if not fitzhugh:
-                for i in tqdm(range(0, nt)):
-                    xt[i + 1, :] = xt[i, :] - grad_v(xt[i, :], alpha[i]) * dt - beta[i] * (
-                                xt[i, :] - np.mean(xt[i, :])) * dt + sigma * dwt[i, :]
-            if fitzhugh:
-                for i in tqdm(range(0, nt)):
-                    xt[i + 1, :] = xt[i, :] - alpha[i] * ((1 / 3 * xt[i, :] ** 3 - xt[i, :]) + yt[i, :]) * dt \
-                                   - beta[i] * (xt[i, :] - np.mean(xt[i, :])) * dt + sigma * dwt[i, :]
-                    yt[i + 1, :] = yt[i, :] + (gamma[i] + xt[i, :]) * dt
 
-        else:
+        if fitzhugh:
+            for i in tqdm(range(0, nt)):
+                xt[i + 1, :] = xt[i, :] \
+                               - grad_v(xt[i, :], yt[i, :], alpha[i]) * dt \
+                               - grad_w(xt[i] - np.mean(xt[i, :]), beta[i]) * dt \
+                               + sigma * dwt[i, :]
+                yt[i + 1, :] = yt[i, :] + (gamma[i] + xt[i, :]) * dt
+
+        elif cucker_smale:
+            for i in tqdm(range(0, nt)):
+                xt[i + 1, :] = xt[i, :] + vt[i, :] * dt
+                for j in range(N):
+                    vt[i + 1, :] = vt[i, :] \
+                                   - grad_v(vt[i, :], alpha[i]) * dt \
+                                   - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], vt[i, j] - vt[i, :], beta[i], beta2[i])) * dt \
+                                   + sigma * dwt[i, j]
+
+        elif kuramoto:
             for i in tqdm(range(0, nt)):
                 for j in range(N):
-                    xt[i + 1, j] = xt[i, j] - grad_v(xt[i, j], alpha[i]) * dt - 1 / N * np.sum(
-                        grad_w(xt[i, j] - xt[i, :], beta[i])) * dt + sigma * dwt[i, j]
-                if kuramoto:
-                    while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
-                        xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
-                        xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
+                    xt[i + 1, j] = xt[i, j] \
+                                   - grad_v(xt[i, j], alpha[i]) * dt \
+                                   - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i])) * dt \
+                                   + sigma * dwt[i, j]
+                while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
+                    xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
+                    xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
+
+        else:
+            if grad_w == grad_quadratic:
+                for i in tqdm(range(0, nt)):
+                    xt[i + 1, :] = xt[i, :] \
+                                   - grad_v(xt[i, :], alpha[i]) * dt \
+                                   - grad_w(xt[i, :] - np.mean(xt[i, :]), beta[i]) * dt \
+                                   + sigma * dwt[i, :]
+            if grad_w != grad_quadratic:
+                for i in tqdm(range(0, nt)):
+                    for j in range(N):
+                        xt[i + 1, j] = xt[i, j] \
+                                       - grad_v(xt[i, j], alpha[i]) * dt \
+                                       - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i])) * dt \
+                                       + sigma * dwt[i, j]
 
     # if in Aij form
-    if np.any(Aij) or Aij_calc:
+    if np.any(Aij):
         for i in tqdm(range(0, nt)):
-
-            # compute Aij if necessary
-            if (Aij_calc):
-                Aij = Aij_calc_func(x=xt[i, :], kernel_func=Aij_influence_func,
-                                    Aij_scale_param=Aij_scale_param, **kwargs)
-
-            # simulate
             for j in range(0, N):
-                xt[i + 1, j] = xt[i, j] - grad_v(xt[i, j], alpha[i]) * dt - \
-                               np.dot(Aij[j, :],xt[i, j] - xt[i, :]) * dt + sigma * dwt[i, j]
+                xt[i + 1, j] = xt[i, j] - grad_v(xt[i, j], alpha[i]) * dt \
+                               - np.dot(Aij[j, :],xt[i, j] - xt[i, :]) * dt + sigma * dwt[i, j]
 
     # if in Lij form
     if np.any(Lij):
@@ -174,6 +222,8 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1,
 
     if fitzhugh:
         return xt[:, 0], yt[:, 0]
+    elif cucker_smale:
+        return xt[:, 0], vt[:, 0]
     else:
         return xt[:, 0]
 
