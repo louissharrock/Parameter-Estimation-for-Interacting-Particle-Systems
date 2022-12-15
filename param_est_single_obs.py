@@ -641,6 +641,8 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                    + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
                 #print(beta_t[i+1])
+            #if beta_t[i+1] < 0:
+            #    beta_t[i+1] = beta_t[i] / 2
 
         # beta2_t (cucker-smale only)
         if est_beta2:
@@ -685,16 +687,16 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 10
+    N_par = 100
     T = 250
-    dt = 0.05
-    sigma = 0.5
+    dt = 0.1
+    sigma = 0.01
 
-    quadratic = False
+    quadratic = True
     bistable = False
     kuramoto = False
     fitzhugh = False
-    cucker_smale = True
+    cucker_smale = False
 
     if quadratic:
         grad_v = grad_quadratic
@@ -739,21 +741,21 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_kuramoto
         grad_x_grad_w = grad_x_grad_kuramoto
 
-    seeds = range(1)
+    seeds = range(10)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.05
+    gamma = 0.2
 
     # parameters
     alpha0 = 2.0
     alpha_true = 0.0
     est_alpha = False
 
-    beta0 = 1.0
-    beta_true = 0.1
+    beta0 = 2.0
+    beta_true = 0.5
     est_beta = True
 
     beta20 = 0.1
@@ -764,7 +766,7 @@ if __name__ == "__main__":
     gamma_true = 0.3
     est_gamma = False
 
-    N_est = 10
+    N_est = 20
 
     # plotting
     plot_each_run = False
@@ -784,7 +786,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.random.normal(0, 1, N_par)
+        x0 = np.zeros(N_par)#np.random.normal(0, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = x0.copy() #np.random.normal(0, 1, N_par)
 
