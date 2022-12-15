@@ -82,7 +82,7 @@ def grad_theta2_grad_cucker_smale(x, v, alpha1, alpha2):
     return num / denom
 
 def grad_x1_grad_cucker_smale(x, v, alpha1, alpha2):
-    num = - 2 * alpha1 * alpha2 * abs(x) * v
+    num = - 2 * alpha1 * alpha2 * x * v
     denom = (1 + x ** 2) ** (alpha2 + 1)
     return num / denom
 
@@ -205,7 +205,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
             for i in tqdm(range(0, nt)):
                 xt[i + 1, :] = xt[i, :] + vt[i, :] * dt
                 for j in range(N):
-                    vt[i + 1, :] = vt[i, :] \
+                    vt[i + 1, j] = vt[i, j] \
                                    - grad_v(vt[i, :], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], vt[i, j] - vt[i, :], beta[i], beta2[i])) * dt \
                                    + sigma * dwt[i, j]
@@ -687,16 +687,16 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 100
-    T = 1000
-    dt = 0.1
+    N_par = 10
+    T = 200
+    dt = 0.05
     sigma = 1.0
 
     quadratic = False
     bistable = False
     kuramoto = False
-    fitzhugh = True
-    cucker_smale = False
+    fitzhugh = False
+    cucker_smale = True
 
     if quadratic:
         grad_v = grad_quadratic
@@ -747,26 +747,26 @@ if __name__ == "__main__":
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.005
+    gamma = 0.1
 
     # parameters
     alpha0 = 2.0
     alpha_true = 1.0
     est_alpha = False
 
-    beta0 = 0.6
-    beta_true = 0.1
+    beta0 = 0.7
+    beta_true = 1.0
     est_beta = False
 
-    beta20 = 1.0
-    beta2_true = 1.0
-    est_beta2 = False
+    beta20 = 0.2
+    beta2_true = 0.4
+    est_beta2 = True
 
     gamma0 = 1.0
     gamma_true = 0.3
-    est_gamma = True
+    est_gamma = False
 
-    N_est = 5
+    N_est = 20
 
     # plotting
     plot_each_run = False
@@ -787,25 +787,25 @@ if __name__ == "__main__":
 
         # simulate mvsde
         x0 = np.random.normal(0, 1, N_par)
-        y0 = np.random.uniform(0, 1, N_par)
-        v0 = np.random.uniform(N_par)
+        y0 = np.random.normal(0, 1, N_par)
+        v0 = np.random.normal(0, 1, N_par)
 
         if fitzhugh:
             xt, yt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
-                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=False, v0=v0,
+                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
                                   beta2=beta2_true)
 
         elif cucker_smale:
             xt, vt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
-                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=False, v0=v0,
+                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
                                   beta2=beta2_true)
 
         else:
             xt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
-                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=False, v0=v0,
+                                  fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
                                   beta2=beta2_true)
 
         if fitzhugh:
@@ -825,10 +825,10 @@ if __name__ == "__main__":
         elif cucker_smale:
             beta_t_one, beta2_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
                                                  est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale = True,
-                                                 vt=vt, grad_theta2_grad_w = grad_theta2_grad_w,
-                                                 grad_x2_grad_w = grad_x2_grad_w, beta20 = beta20,
-                                                 beta2_true = beta2_true, est_beta2 = est_beta2, average=True)
+                                                 beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
+                                                 vt=vt, grad_theta2_grad_w=grad_theta2_grad_w,
+                                                 grad_x2_grad_w=grad_x2_grad_w, beta20=beta20,
+                                                 beta2_true=beta2_true, est_beta2=est_beta2, average=True)
             beta_t_two, beta2_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
                                                  est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
                                                  beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
@@ -877,7 +877,6 @@ if __name__ == "__main__":
                 plt.legend()
                 plt.show()
 
-
     if plot_mean_run:
         if est_alpha and not est_beta and not est_gamma:
             plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
@@ -893,7 +892,7 @@ if __name__ == "__main__":
             plt.axhline(y=beta_true, linestyle="--", color="black")
             plt.legend()
             if save_plots:
-                plt.savefig(path + "/beta_est_all_ex2.eps", dpi=300)
+                plt.savefig(path + "/beta_est_all.eps", dpi=300)
             plt.show()
         elif est_gamma and not est_alpha and not est_beta:
             plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
