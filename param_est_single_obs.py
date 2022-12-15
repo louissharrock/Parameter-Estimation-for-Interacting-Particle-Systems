@@ -82,7 +82,7 @@ def grad_theta2_grad_cucker_smale(x, v, alpha1, alpha2):
     return num / denom
 
 def grad_x1_grad_cucker_smale(x, v, alpha1, alpha2):
-    num = - 2 * alpha1 * alpha2 * x * v
+    num = - 2 * alpha1 * alpha2 * abs(x) * v
     denom = (1 + x ** 2) ** (alpha2 + 1)
     return num / denom
 
@@ -206,7 +206,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                 xt[i + 1, :] = xt[i, :] + vt[i, :] * dt
                 for j in range(N):
                     vt[i + 1, j] = vt[i, j] \
-                                   - grad_v(vt[i, :], alpha[i]) * dt \
+                                   - grad_v(vt[i, j], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], vt[i, j] - vt[i, :], beta[i], beta2[i])) * dt \
                                    + sigma * dwt[i, j]
         elif kuramoto:
@@ -687,10 +687,10 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 10
+    N_par = 50
     T = 200
     dt = 0.05
-    sigma = 1.0
+    sigma = 0.01
 
     quadratic = False
     bistable = False
@@ -754,11 +754,11 @@ if __name__ == "__main__":
     alpha_true = 1.0
     est_alpha = False
 
-    beta0 = 0.7
+    beta0 = 1.0
     beta_true = 1.0
     est_beta = False
 
-    beta20 = 0.2
+    beta20 = 0.1
     beta2_true = 0.4
     est_beta2 = True
 
@@ -787,8 +787,10 @@ if __name__ == "__main__":
 
         # simulate mvsde
         x0 = np.random.normal(0, 1, N_par)
+        if cucker_smale:
+            x0 = np.random.normal(0,10,N_par)
         y0 = np.random.normal(0, 1, N_par)
-        v0 = np.random.normal(0, 1, N_par)
+        v0 = np.random.normal(0, 10, N_par)
 
         if fitzhugh:
             xt, yt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
