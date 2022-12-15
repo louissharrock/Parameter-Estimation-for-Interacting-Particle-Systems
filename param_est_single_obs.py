@@ -62,7 +62,7 @@ def grad_x1_grad_fitzhugh(x, y, alpha):
     return alpha * (x ** 2 - 1)
 
 def grad_x2_grad_fitzhugh(x, y, alpha):
-    return alpha * y
+    return alpha
 
 
 ## (Gradient of?) Cucker-Smale potential (interaction)
@@ -515,7 +515,8 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                           - grad_x_grad_w(tildext1_N[i, :] - np.mean(tildext1_N[i, :]), beta_t[i]) * (tildeyt1_N[i, 0, :] - np.mean(tildeyt1_N[i, 0, :])) * dt
                 tildeyt1_N_y[i + 1, 0, :] = tildeyt1_N_y[i, 0, :] + tildeyt1_N[i + 1, 0, :] * dt
 
-            # elif cucker_smale: don't have a confinement parameter for cucker-smale model
+            # elif cucker_smale:
+            # no updates: assume we don't have a confinement parameter for cucker-smale model
 
             elif kuramoto:
                 for j in range(N):
@@ -599,45 +600,74 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # online parameter updates
         # alpha_t
         if est_alpha:
-            if grad_w == grad_quadratic:
-                if not fitzhugh:
-                    alpha_t[i+1] = alpha_t[i] + gamma \
-                                   * (- grad_theta_grad_v(xt[i], alpha_t[i]) + beta_t[i] * averaging_func(tildeyt1_N[i, 0, :])) \
-                                   * (dxt - (-grad_v(xt[i], alpha_t[i]) - beta_t[i] * (xt[i] - averaging_func(tildext2_N[i, :]))) * dt)
-                if fitzhugh:
-                    alpha_t[i + 1] = alpha_t[i] + gamma \
-                                     * (-(1 / 3 * xt[i] ** 3 - xt[i] + yt[i]) + beta_t[i] * averaging_func(tildeyt1_N[i, 0, :])) \
-                                     * (dxt - (- alpha_t[i] * (1 / 3 * xt[i] ** 3 - xt[i] + yt[i]) - beta_t[i] * (xt[i] - averaging_func(tildext2_N[i, :]))) * dt)
-            else:
+            if fitzhugh:
+                alpha_t[i + 1] = alpha_t[i] + gamma \
+                                 * (-grad_theta_grad_v(xt[i], yt[i], alpha_t[i])
+                                    + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                                 * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
 
+            # elif cucker_smale:
+            # no updates
+
+            elif kuramoto:
+                alpha_t[i + 1] = alpha_t[i] + gamma \
+                                 * (- grad_theta_grad_v(xt[i], alpha_t[i])
+                                    + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                                 * 1 / (sigma ** 2) \
+                                 * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+
+            else:
                 alpha_t[i+1] = alpha_t[i] + gamma \
-                               * (- grad_theta_grad_v(xt[i], alpha_t[i]) + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
-                               * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+                               * (- grad_theta_grad_v(xt[i], alpha_t[i])
+                                  + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                               * 1 / (sigma ** 2) \
+                               * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+
 
         # beta_t
         if est_beta:
-            if grad_w == grad_quadratic:
-                if not fitzhugh:
-                    beta_t[i + 1] = beta_t[i] + gamma \
-                                    * (- (xt[i] - averaging_func(tildext1_N[i, :])) + beta_t[i] * averaging_func(tildeyt1_N[i, 1, :])) \
-                                    * (dxt - (-grad_v(xt[i], alpha_t[i]) - beta_t[i] * (xt[i] - averaging_func(tildext2_N[i, :]))) * dt)
-                if fitzhugh:
-                    beta_t[i + 1] = beta_t[i] + gamma \
-                                    * (- (xt[i] - tildext1_N[i, 0]) + beta_t[i] * averaging_func(tildeyt1_N[i, 1, :])) \
-                                    * (dxt - (- alpha_t[i] * (1 / 3 * xt[i] ** 3 - xt[i] + yt[i]) - beta_t[i] * (xt[i] - averaging_func(tildext2_N[i, :]))) * dt)
+            if fitzhugh:
+                beta_t[i + 1] = beta_t[i] + gamma \
+                                * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
+                                   - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                                * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+
+            elif cucker_smale:
+                beta_t[i + 1] = beta_t[i] + gamma \
+                                * (-averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N_v[i, 0, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
+                                * (dyt - (- grad_v(tildeyt1_N_v[i, :], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
+
+            elif kuramoto:
+                beta_t[i + 1] = beta_t[i] + gamma \
+                                * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
+                                   - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                                * 1 / (sigma ** 2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+
             else:
                 beta_t[i + 1] = beta_t[i] + gamma \
-                               * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
-                                  + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
-                               * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+                                * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
+                                   + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
+                                * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
 
+        # beta2_t (cucker-smale only)
+        if est_beta2:
+            if cucker_smale:
+                beta2_t[i+1] = beta2_t[i] + gamma \
+                                * (-averaging_func(grad_theta2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N_v[i, 1, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
+                                * (dyt - (- grad_v(tildeyt1_N_v[i, :], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
+
+        # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
-            gamma_t[i + 1] = gamma_t[i] \
-                             + gamma \
-                             * (beta_t[i] * tildeyt1_N[i, 2, 0]) \
-                             * (dxt - (- alpha_t[i] * (1 / 3 * xt[i] ** 3 - xt[i] + yt[i]) - beta_t[i] * (xt[i] - averaging_func(tildext2_N[i, :]))) * dt) \
-                             + gamma \
-                             * (dyt - (gamma_t[i] + xt[i]) * dt)
+            if fitzhugh:
+                gamma_t[i + 1] = gamma_t[i] + gamma \
+                                 * (averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i]-tildext1_N[i,:], beta_t[i]))) \
+                                 * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt) \
+                                 + gamma \
+                                 * (dyt - (gamma_t[i] + xt[i]) * dt)
 
     if not fitzhugh:
         return alpha_t, beta_t
