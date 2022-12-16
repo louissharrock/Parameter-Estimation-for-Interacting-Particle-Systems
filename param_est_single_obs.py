@@ -77,8 +77,8 @@ def grad_theta1_grad_cucker_smale(x, v, alpha1, alpha2):
     return num / denom
 
 def grad_theta2_grad_cucker_smale(x, v, alpha1, alpha2):
-    num = - alpha1 * alpha2 * v
-    denom = (1 + x ** 2) ** (alpha2 + 1)
+    num = - alpha1 * np.log((1 + x ** 2)) * v
+    denom = (1 + x ** 2) ** (alpha2)
     return num / denom
 
 def grad_x1_grad_cucker_smale(x, v, alpha1, alpha2):
@@ -88,7 +88,7 @@ def grad_x1_grad_cucker_smale(x, v, alpha1, alpha2):
 
 def grad_x2_grad_cucker_smale(x, v, alpha1, alpha2):
     num = alpha1
-    denom = 1 # (1 + x ** 2) ** alpha2
+    denom = (1 + x ** 2) ** alpha2
     return num / denom
 
 
@@ -135,7 +135,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
     if cucker_smale:
         assert v0 is not None
         assert beta2 is not None
-        assert grad_v == grad_linear
+        assert grad_v == grad_quadratic
         assert grad_w == grad_cucker_smale
 
     if kuramoto:
@@ -304,9 +304,9 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         assert vt is not None
         assert beta20 is not None
         assert beta2_true is not None
-        assert grad_v == grad_linear
-        assert grad_theta_grad_v == grad_theta_grad_linear
-        assert grad_x_grad_v == grad_x_grad_linear
+        assert grad_v == grad_quadratic
+        assert grad_theta_grad_v == grad_theta_grad_quadratic
+        assert grad_x_grad_v == grad_x_grad_quadratic
         assert grad_w == grad_cucker_smale
         assert grad_theta_grad_w == grad_theta1_grad_cucker_smale
         assert grad_theta2_grad_w == grad_theta2_grad_cucker_smale
@@ -413,11 +413,11 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         tildext1_N_v[0, :] = xt[0] * np.ones(N)
         tildext2_N_v[0, :] = xt[0] * np.ones(N)
 
-        tildeyt1_N = np.zeros((nt + 1, 2, N)) # tangent of x process
-        tildeyt1_N[0, :] = np.zeros((2, N))
+        tildeyt1_N = np.zeros((nt + 1, 3, N)) # tangent of x process, three parameters
+        tildeyt1_N[0, :] = np.zeros((3, N))
 
-        tildeyt1_N_v = np.zeros((nt + 1, 2, N)) # tangent of v process
-        tildeyt1_N_v[0, :] = np.zeros((2, N))
+        tildeyt1_N_v = np.zeros((nt + 1, 3, N)) # tangent of v process, three parameters
+        tildeyt1_N_v[0, :] = np.zeros((3, N))
 
     dwt1 = np.sqrt(dt) * np.random.randn(nt + 1, N)
     dwt2 = np.sqrt(dt) * np.random.randn(nt + 1, N)
@@ -455,18 +455,12 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                          - grad_v(tildext1_N_v[i, j], alpha_t[i]) * dt \
                                          - 1 / N * np.sum(grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i])) * dt \
                                          + sigma * dwt1[i, j]
-            #print([1 / N * np.sum(grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i])) for j in range(N)])
-            #print(sigma * dwt1[i, :])
             tildext2_N[i + 1, :] = tildext2_N[i, :] + tildext2_N_v[i, :] * dt
             for j in range(N):
                 tildext2_N_v[i + 1, j] = tildext2_N_v[i, j] \
                                          - grad_v(tildext2_N_v[i, j], alpha_t[i]) * dt \
                                          - 1 / N * np.sum(grad_w(tildext2_N[i, j] - tildext2_N[i, :], tildext2_N_v[i, j] - tildext2_N_v[i, :], beta_t[i], beta2_t[i])) * dt \
                                          + sigma * dwt2[i, j]
-            #print([1 / N * np.sum(
-            #    grad_w(tildext2_N[i, j] - tildext2_N[i, :], tildext2_N_v[i, j] - tildext2_N_v[i, :], beta_t[i],
-            #           beta2_t[i])) for j in range(N)])
-            #print(sigma * dwt2[i, :])
         elif kuramoto:
             for j in range(N):
                 tildext1_N[i + 1, j] = tildext1_N[i, j] \
@@ -490,15 +484,9 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                        - grad_v(tildext1_N[i, :], alpha_t[i]) * dt \
                                        - beta_t[i] * (tildext1_N[i, :] - np.mean(tildext1_N[i, :])) * dt \
                                        + sigma * dwt1[i, :]
-                #print("hello")
-                #print(beta_t[i] * (tildext1_N[i, :] - np.mean(tildext1_N[i, :])))
-                #print(sigma*dwt1[i,:])
                 tildext2_N[i + 1, :] = tildext2_N[i, :] - grad_v(tildext2_N[i, :], alpha_t[i]) * dt \
                                        - beta_t[i] * (tildext2_N[i, :] - np.mean(tildext2_N[i, :])) * dt \
                                        + sigma * dwt2[i, :]
-                #print("hello")
-                #print(beta_t[i] * (tildext2_N[i, :] - np.mean(tildext2_N[i, :])))
-                #print(sigma * dwt2[i, :])
 
             if grad_w != grad_quadratic:
                 for j in range(N):
@@ -520,6 +508,14 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                           - grad_x2_grad_v(tildext1_N[i, :], tildext1_N_y[i, :], alpha_t[i]) * tildeyt1_N_y[i, 0, :] * dt \
                                           - grad_x_grad_w(tildext1_N[i, :] - np.mean(tildext1_N[i, :]), beta_t[i]) * (tildeyt1_N[i, 0, :] - np.mean(tildeyt1_N[i, 0, :])) * dt
                 tildeyt1_N_y[i + 1, 0, :] = tildeyt1_N_y[i, 0, :] + tildeyt1_N[i + 1, 0, :] * dt
+            elif cucker_smale:
+                tildeyt1_N[i + 1, 0, :] = tildeyt1_N[i, 0, :] + tildeyt1_N_v[i, 0, :] * dt
+                for j in range(N):
+                    tildeyt1_N_v[i + 1, 0, j] = tildeyt1_N_v[i, 0, j] \
+                                                - grad_theta_grad_v(tildext1_N_v[i, j], alpha_t[i]) * dt \
+                                                - grad_x_grad_v(tildext1_N_v[i, j], alpha_t[i]) * tildeyt1_N_v[i, 0, j] * dt \
+                                                - 1 / N * np.sum(grad_x_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :],beta_t[i], beta2_t[i]) * (tildeyt1_N[i, 0, j] - tildeyt1_N[i, 0, :])) * dt \
+                                                - 1 / N * np.sum(grad_x2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :],beta_t[i], beta2_t[i]) * (tildeyt1_N_v[i, 0, j] - tildeyt1_N_v[i, 0, :])) * dt
             elif kuramoto:
                 for j in range(N):
                     tildeyt1_N[i + 1, 0, j] = tildeyt1_N[i, 0, j] \
@@ -549,14 +545,13 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                           - grad_x_grad_w(tildext1_N[i, :] - np.mean(tildext1_N[i, :]), beta_t[i]) * (tildeyt1_N[i, 1, :] - np.mean(tildeyt1_N[i, 1, :])) * dt
                 tildeyt1_N_y[i + 1, 1, :] = tildeyt1_N_y[i, 1, :] + tildeyt1_N[i + 1, 1, :] * dt
             elif cucker_smale:
-                tildeyt1_N[i + 1, 0, :] = tildeyt1_N[i, 0, :] + tildeyt1_N_v[i, 0, :] * dt
+                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] + tildeyt1_N_v[i, 1, :] * dt
                 for j in range(N):
-                    tildeyt1_N_v[i + 1, 0, j] = tildeyt1_N_v[i, 0, j] \
-                                                - grad_x_grad_v(tildext1_N_v[i, j], alpha_t[i]) * tildeyt1_N_v[i, 0, j] * dt \
+                    tildeyt1_N_v[i + 1, 1, j] = tildeyt1_N_v[i, 1, j] \
+                                                - grad_x_grad_v(tildext1_N_v[i, j], alpha_t[i]) * tildeyt1_N_v[i, 1, j] * dt \
                                                 - 1 / N * np.sum(grad_theta_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i])) * dt \
-                                                - 1 / N * np.sum(grad_x_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N[i, 0, j] - tildeyt1_N[i, 0, :])) * dt \
-                                                - 1 / N * np.sum(grad_x2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N_v[i, 0, j] - tildeyt1_N_v[i, 0, :])) * dt
-                #print(tildeyt1_N_v[i+1,0,:])
+                                                - 1 / N * np.sum(grad_x_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N[i, 1, j] - tildeyt1_N[i, 1, :])) * dt \
+                                                - 1 / N * np.sum(grad_x2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N_v[i, 1, j] - tildeyt1_N_v[i, 1, :])) * dt
             elif kuramoto:
                 for j in range(N):
                     tildeyt1_N[i + 1, 1, j] = tildeyt1_N[i, 1, j] \
@@ -569,7 +564,6 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                               - grad_x_grad_v(tildext1_N[i, :], alpha_t[i]) * tildeyt1_N[i, 1, :] * dt \
                                               - grad_theta_grad_w(tildext1_N[i, :] - np.mean(tildext1_N[i, :]), beta_t[i]) * dt \
                                               - grad_x_grad_w(tildext1_N[i, :] - np.mean(tildext1_N[i, :]), beta_t[i]) * (tildeyt1_N[i, 1, :] - np.mean(tildeyt1_N[i, 1, :])) * dt
-                    #print(tildeyt1_N[i+1,1,:])
                 if grad_w != grad_quadratic:
                     for j in range(N):
                         tildeyt1_N[i + 1, 1, j] = tildeyt1_N[i, 1, j] \
@@ -579,13 +573,13 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
 
         if est_beta2:
             if cucker_smale:
-                tildeyt1_N[i + 1, 1, :] = tildeyt1_N[i, 1, :] + tildeyt1_N_v[i, 1, :] * dt
+                tildeyt1_N[i + 1, 2, :] = tildeyt1_N[i, 2, :] + tildeyt1_N_v[i, 2, :] * dt
                 for j in range(N):
-                    tildeyt1_N_v[i + 1, 1, j] = tildeyt1_N_v[i, 1, j] \
-                                                - grad_x_grad_v(tildext1_N_v[i, j], alpha_t[i]) * tildeyt1_N_v[i, 1, j] * dt \
+                    tildeyt1_N_v[i + 1, 2, j] = tildeyt1_N_v[i, 2, j] \
+                                                - grad_x_grad_v(tildext1_N_v[i, j], alpha_t[i]) * tildeyt1_N_v[i, 2, j] * dt \
                                                 - 1 / N * np.sum(grad_theta2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i])) * dt \
-                                                - 1 / N * np.sum(grad_x_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N[i, 1, j] - tildeyt1_N[i, 1, :])) * dt \
-                                                - 1 / N * np.sum(grad_x2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N_v[i, 1, j] - tildeyt1_N_v[i, 1, :])) * dt
+                                                - 1 / N * np.sum(grad_x_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N[i, 2, j] - tildeyt1_N[i, 2, :])) * dt \
+                                                - 1 / N * np.sum(grad_x2_grad_w(tildext1_N[i, j] - tildext1_N[i, :], tildext1_N_v[i, j] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]) * (tildeyt1_N_v[i, 2, j] - tildeyt1_N_v[i, 2, :])) * dt
 
         if est_gamma:
             if fitzhugh:
@@ -603,6 +597,12 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                  * (-grad_theta_grad_v(xt[i], yt[i], alpha_t[i])
                                     + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                  * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
+            elif cucker_smale:
+                alpha_t[i + 1] = alpha_t[i] + gamma \
+                                * (- grad_theta_grad_v(vt[i], alpha_t[i])
+                                   - - averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N_v[i, 0, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
+                                * (dvt - (- grad_v(vt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
             elif kuramoto:
                 alpha_t[i + 1] = alpha_t[i] + gamma \
                                  * (- grad_theta_grad_v(xt[i], alpha_t[i])
@@ -626,10 +626,9 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
             elif cucker_smale:
                 beta_t[i + 1] = beta_t[i] + gamma \
                                 * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_true[i], beta2_t[i]))
-                                   - - averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
-                                   - - averaging_func(tildeyt1_N_v[i, 0, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
+                                   - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N_v[i, 1, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
                                 * (dvt - (- grad_v(vt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
-                #print(beta_t[i+1])
             elif kuramoto:
                 beta_t[i + 1] = beta_t[i] + gamma \
                                 * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
@@ -640,17 +639,14 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                 * (-averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
                                    + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
-                #print(beta_t[i+1])
-            #if beta_t[i+1] < 0:
-            #    beta_t[i+1] = beta_t[i] / 2
 
         # beta2_t (cucker-smale only)
         if est_beta2:
             if cucker_smale:
                 beta2_t[i+1] = beta2_t[i] + gamma \
                                 * (-averaging_func(grad_theta2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
-                                   - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
-                                   - - averaging_func(tildeyt1_N_v[i, 1, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
+                                   - - averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
+                                   - - averaging_func(tildeyt1_N_v[i, 2, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
                                 * (dvt - (- grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
 
         # gamma_t (fitzhugh-nagumo only)
@@ -665,7 +661,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
     if fitzhugh:
         return alpha_t, beta_t, gamma_t
     elif cucker_smale:
-        return beta_t, beta2_t
+        return alpha_t, beta_t, beta2_t
     else:
         return alpha_t, beta_t
 
@@ -687,16 +683,16 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 100
-    T = 250
+    N_par = 20
+    T = 2000
     dt = 0.1
-    sigma = 0.01
+    sigma = 1
 
-    quadratic = True
+    quadratic = False
     bistable = False
     kuramoto = False
     fitzhugh = False
-    cucker_smale = False
+    cucker_smale = True
 
     if quadratic:
         grad_v = grad_quadratic
@@ -724,9 +720,9 @@ if __name__ == "__main__":
         grad_x_grad_w = grad_x_grad_quadratic
 
     if cucker_smale:
-        grad_v = grad_linear
-        grad_theta_grad_v = grad_theta_grad_linear
-        grad_x_grad_v = grad_x_grad_linear
+        grad_v = grad_quadratic
+        grad_theta_grad_v = grad_theta_grad_quadratic
+        grad_x_grad_v = grad_x_grad_quadratic
         grad_w = grad_cucker_smale
         grad_theta_grad_w = grad_theta1_grad_cucker_smale
         grad_theta2_grad_w = grad_theta2_grad_cucker_smale
@@ -741,32 +737,32 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_kuramoto
         grad_x_grad_w = grad_x_grad_kuramoto
 
-    seeds = range(10)
+    seeds = range(2)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.2
+    gamma = 0.02
 
     # parameters
-    alpha0 = 2.0
-    alpha_true = 0.0
+    alpha0 = 1.5
+    alpha_true = 0.4
     est_alpha = False
 
-    beta0 = 2.0
-    beta_true = 0.5
+    beta0 = 1.0
+    beta_true = 0.2
     est_beta = True
 
-    beta20 = 0.1
-    beta2_true = 0.1
+    beta20 = 0.2
+    beta2_true = 0.2
     est_beta2 = False
 
     gamma0 = 1.0
     gamma_true = 0.3
     est_gamma = False
 
-    N_est = 20
+    N_est = 5
 
     # plotting
     plot_each_run = False
@@ -786,7 +782,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.zeros(N_par)#np.random.normal(0, 1, N_par)
+        x0 = np.zeros(N_par) #np.random.normal(0, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = x0.copy() #np.random.normal(0, 1, N_par)
 
@@ -806,95 +802,98 @@ if __name__ == "__main__":
                                   fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
                                   beta2=beta2_true)
 
-        if fitzhugh:
-            alpha_t_one, beta_t_one, gamma_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
-                                                              alpha_true, est_alpha, grad_w, grad_theta_grad_w,
-                                                              grad_x_grad_w, beta0, beta_true, est_beta, sigma,
-                                                              gamma, N_est, seed, average=True,  fitzhugh=fitzhugh, yt=yt,
-                                                              grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
-                                                              gamma_true=gamma_true, est_gamma=est_gamma)
-            alpha_t_two, beta_t_two, gamma_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
-                                                              alpha_true, est_alpha, grad_w, grad_theta_grad_w,
-                                                              grad_x_grad_w, beta0, beta_true, est_beta, sigma,
-                                                              gamma, N_est, seed, average=False,  fitzhugh=fitzhugh, yt=yt,
-                                                              grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
-                                                              gamma_true=gamma_true, est_gamma=est_gamma)
-        elif cucker_smale:
-            beta_t_one, beta2_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
-                                                 vt=vt, grad_theta2_grad_w=grad_theta2_grad_w,
-                                                 grad_x2_grad_w=grad_x2_grad_w, beta20=beta20,
-                                                 beta2_true=beta2_true, est_beta2=est_beta2, average=True)
-            beta_t_two, beta2_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
-                                                 vt=vt, grad_theta2_grad_w=grad_theta2_grad_w,
-                                                 grad_x2_grad_w=grad_x2_grad_w, beta20=beta20,
-                                                 beta2_true=beta2_true, est_beta2=est_beta2, average=False)
-        else:
-            alpha_t_one, beta_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed, kuramoto=kuramoto,
-                                                 average=True)
-            alpha_t_two, beta_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
-                                                 est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
-                                                 beta_true, est_beta, sigma, gamma, N_est, seed, kuramoto=kuramoto,
-                                                 average=False)
+        # parameter estimation
+        if True:
+            if fitzhugh:
+                alpha_t_one, beta_t_one, gamma_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                                  alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                                  grad_x_grad_w, beta0, beta_true, est_beta, sigma,
+                                                                  gamma, N_est, seed, average=True,  fitzhugh=fitzhugh, yt=yt,
+                                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
+                                                                  gamma_true=gamma_true, est_gamma=est_gamma)
+                alpha_t_two, beta_t_two, gamma_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                                  alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                                  grad_x_grad_w, beta0, beta_true, est_beta, sigma,
+                                                                  gamma, N_est, seed, average=False,  fitzhugh=fitzhugh, yt=yt,
+                                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
+                                                                  gamma_true=gamma_true, est_gamma=est_gamma)
+            elif cucker_smale:
+                alpha_t_one, beta_t_one, beta2_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
+                                                     vt=vt, grad_theta2_grad_w=grad_theta2_grad_w,
+                                                     grad_x2_grad_w=grad_x2_grad_w, beta20=beta20,
+                                                     beta2_true=beta2_true, est_beta2=est_beta2, average=True)
+                alpha_t_two, beta_t_two, beta2_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed, cucker_smale=True,
+                                                     vt=vt, grad_theta2_grad_w=grad_theta2_grad_w,
+                                                     grad_x2_grad_w=grad_x2_grad_w, beta20=beta20,
+                                                     beta2_true=beta2_true, est_beta2=est_beta2, average=False)
+            else:
+                alpha_t_one, beta_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed, kuramoto=kuramoto,
+                                                     average=True)
+                alpha_t_two, beta_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_true,
+                                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
+                                                     beta_true, est_beta, sigma, gamma, N_est, seed, kuramoto=kuramoto,
+                                                     average=False)
 
 
-        if fitzhugh:
-            all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_gamma_t[:, idx, 0] = alpha_t_one, beta_t_one, gamma_t_one
-            all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_gamma_t[:, idx, 1] = alpha_t_two, beta_t_two, gamma_t_two
-        elif cucker_smale:
-            all_beta_t[:, idx, 0], all_beta2_t[:, idx, 0] = beta_t_one, beta2_t_one
-            all_beta_t[:, idx, 1], all_beta2_t[:, idx, 1] = beta_t_two, beta2_t_two
-        else:
-            all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0] = alpha_t_one, beta_t_one
-            all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1] = alpha_t_two, beta_t_two
+            if fitzhugh:
+                all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_gamma_t[:, idx, 0] = alpha_t_one, beta_t_one, gamma_t_one
+                all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_gamma_t[:, idx, 1] = alpha_t_two, beta_t_two, gamma_t_two
+            elif cucker_smale:
+                all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_beta2_t[:, idx, 0] = alpha_t_one,beta_t_one, beta2_t_one
+                all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_beta2_t[:, idx, 1] = alpha_t_two, beta_t_two, beta2_t_two
+            else:
+                all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0] = alpha_t_one, beta_t_one
+                all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1] = alpha_t_two, beta_t_two
 
-        if plot_each_run:
+            if plot_each_run:
+                if est_alpha and not est_beta and not est_gamma:
+                    plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
+                    plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C0")
+                    plt.axhline(y=alpha_true, linestyle="--", color="C1")
+                    plt.legend()
+                    plt.show()
+                if est_beta and not est_alpha and not est_gamma:
+                    plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
+                    plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C0")
+                    plt.axhline(y=beta_true, linestyle="--", color="C1")
+                    plt.legend()
+                    plt.show()
+                if est_gamma and not est_alpha and not est_beta:
+                    plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
+                    plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C0")
+                    plt.axhline(y=gamma_true, linestyle="--", color="C1")
+                    plt.legend()
+                    plt.show()
+    if True:
+        if plot_mean_run:
             if est_alpha and not est_beta and not est_gamma:
-                plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
-                plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C0")
-                plt.axhline(y=alpha_true, linestyle="--", color="C1")
+                plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
+                plt.axhline(y=alpha_true, linestyle="--", color="black")
                 plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha_est_all.eps", dpi=300)
                 plt.show()
-            if est_beta and not est_alpha and not est_gamma:
-                plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
-                plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C0")
-                plt.axhline(y=beta_true, linestyle="--", color="C1")
+            elif est_beta and not est_alpha and not est_gamma:
+                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
                 plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/beta_est_all.eps", dpi=300)
                 plt.show()
-            if est_gamma and not est_alpha and not est_beta:
-                plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
-                plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C0")
-                plt.axhline(y=gamma_true, linestyle="--", color="C1")
+            elif est_gamma and not est_alpha and not est_beta:
+                plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                plt.axhline(y=gamma_true, linestyle="--", color="black")
                 plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/gamma_est_all.eps", dpi=300)
                 plt.show()
 
-    if plot_mean_run:
-        if est_alpha and not est_beta and not est_gamma:
-            plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
-            plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
-            plt.axhline(y=alpha_true, linestyle="--", color="black")
-            plt.legend()
-            if save_plots:
-                plt.savefig(path + "/alpha_est_all.eps", dpi=300)
-            plt.show()
-        elif est_beta and not est_alpha and not est_gamma:
-            plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
-            plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
-            plt.axhline(y=beta_true, linestyle="--", color="black")
-            plt.legend()
-            if save_plots:
-                plt.savefig(path + "/beta_est_all.eps", dpi=300)
-            plt.show()
-        elif est_gamma and not est_alpha and not est_beta:
-            plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
-            plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
-            plt.axhline(y=gamma_true, linestyle="--", color="black")
-            plt.legend()
-            if save_plots:
-                plt.savefig(path + "/gamma_est_all.eps", dpi=300)
-            plt.show()
