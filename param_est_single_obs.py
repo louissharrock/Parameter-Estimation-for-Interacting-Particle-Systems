@@ -195,6 +195,11 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
         if type(alpha2) is float:
             alpha2 = [alpha2] * (nt+1)
 
+        if type(sigma) is int:
+            sigma = [sigma] * (nt+1)
+        if type(sigma) is float:
+            sigma = [sigma] * (nt+1)
+
 
     # initialise xt
     xt = np.zeros((nt + 1, N))
@@ -248,7 +253,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                 xt[i + 1, :] = xt[i, :] \
                                - grad_v(xt[i, :], alpha[i], alpha2[i]) * dt \
                                - grad_w(xt[i, :] - np.mean(xt[i, :]), beta[i]) * dt \
-                               + sigma * xt[i, :] ** 1.5 * dwt[i, :]
+                               + sigma[i] * xt[i, :] ** 1.5 * dwt[i, :]
         else:
             if grad_w == grad_quadratic:
                 for i in tqdm(range(0, nt)):
@@ -315,7 +320,8 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                grad_theta_grad_w, grad_x_grad_w, beta0, beta_true, est_beta, sigma, gamma, N=2, seed=1, average=True,
                fitzhugh=False, yt=None, grad_x2_grad_v=None, gamma0=None, gamma_true=None, est_gamma=False,
                kuramoto=False, cucker_smale=False, vt=None, grad_theta2_grad_w=None, grad_x2_grad_w=None, beta20=None,
-               beta2_true=None, est_beta2=False):
+               beta2_true=None, est_beta2=False, stochastic_volatility=False, grad_theta2_grad_v=None, alpha20=None,
+               alpha2_true=None, est_alpha2=False, sigma0=None, sigma_true=None, est_sigma=False):
 
     # check inputs
     if fitzhugh:
@@ -347,6 +353,19 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         assert grad_w == grad_kuramoto
         assert grad_theta_grad_w == grad_theta_grad_kuramoto
         assert grad_x_grad_w == grad_x_grad_kuramoto
+
+    if stochastic_volatility:
+        assert alpha20 is not None
+        assert alpha2_true is not None
+        assert sigma0 is not None
+        assert sigma_true is not None
+        assert grad_v == grad_stochastic_volatility
+        assert grad_theta_grad_v == grad_theta1_grad_stochastic_volatility
+        assert grad_theta2_grad_v == grad_theta2_grad_stochastic_volatility
+        assert grad_x_grad_v == grad_x_grad_stochastic_volatility
+        assert grad_w == grad_quadratic
+        assert grad_theta_grad_w == grad_theta_grad_quadratic
+        assert grad_x_grad_w == grad_x_grad_quadratic
 
     # averaging func
     if average:
@@ -390,6 +409,20 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         if type(beta2_true) is int:
             beta2_true = [beta2_true] * (nt + 1)
 
+    if stochastic_volatility:
+        if type(alpha2_true) is float:
+            alpha2_true = [alpha2_true] * (nt + 1)
+
+        if type(alpha2_true) is int:
+            alpha2_true = [alpha2_true] * (nt + 1)
+
+        if type(sigma_true) is float:
+            sigma_true = [sigma_true] * (nt + 1)
+
+        if type(sigma_true) is int:
+            sigma_true = [sigma_true] * (nt + 1)
+
+
     # initialise
     alpha_t = np.zeros(nt + 1)
     if est_alpha:
@@ -416,6 +449,19 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
             beta2_t[0] = beta20
         else:
             beta2_t = beta2_true
+
+    if stochastic_volatility:
+        alpha2_t = np.zeros(nt + 1)
+        if est_alpha2:
+            alpha2_t[0] = alpha20
+        else:
+            alpha2_t = alpha2_true
+
+        sigma_t = np.zeros(nt + 1)
+        if est_sigma:
+            sigma_t[0] = sigma0
+        else:
+            sigma_t = sigma_true
 
     tildext1_N = np.zeros((nt + 1, N))
     tildext2_N = np.zeros((nt + 1, N))
@@ -448,6 +494,10 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
 
         tildeyt1_N_v = np.zeros((nt + 1, 3, N)) # tangent of v process, three parameters
         tildeyt1_N_v[0, :] = np.zeros((3, N))
+
+    if stochastic_volatility:
+        tildeyt1_N = np.zeros((nt + 1, 3, N)) # tangent of x process w.r.t. theta, three parameters
+        tildeyt1_N[0, :] = np.zeros((3, N)) # tangent of x process w.r.t. theta, three parameters
 
     dwt1 = np.sqrt(dt) * np.random.randn(nt + 1, N)
     dwt2 = np.sqrt(dt) * np.random.randn(nt + 1, N)
@@ -703,7 +753,7 @@ if __name__ == "__main__":
 
     # general
     root = "results/"
-    leaf = "cucker_smale"
+    leaf = "stochastic_volatility"
     path = os.path.join(root, leaf)
     if not os.path.exists(path):
         os.makedirs(path)
@@ -713,16 +763,17 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_obs = 1
-    N_par = 50
-    T = 5000
+    N_par = 10
+    T = 100
     dt = 0.1
-    sigma = 0.5
+    sigma = 2/np.sqrt(10)
 
     quadratic = False
     bistable = False
     kuramoto = False
     fitzhugh = False
-    cucker_smale = True
+    cucker_smale = False
+    stochastic_volatility = True
 
     if quadratic:
         grad_v = grad_quadratic
@@ -767,21 +818,34 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_kuramoto
         grad_x_grad_w = grad_x_grad_kuramoto
 
-    seeds = range(20)
+    if stochastic_volatility:
+        grad_v = grad_stochastic_volatility
+        grad_theta_grad_v = grad_theta1_grad_stochastic_volatility
+        grad_theta2_grad_v = grad_theta2_grad_stochastic_volatility
+        grad_x_grad_v = grad_x_grad_stochastic_volatility
+        grad_w = grad_quadratic
+        grad_theta_grad_w = grad_theta_grad_quadratic
+        grad_x_grad_w = grad_x_grad_quadratic
+
+    seeds = range(1)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.04 #0.04 for alpha, 0.25 for beta
+    gamma = 0.1
 
     # parameters
     alpha0 = 1.5
-    alpha_true = 0.9
+    alpha_true = 2.5
     est_alpha = True
 
+    alpha20 = 0.4
+    alpha2_true = 2.5
+    est_alpha2 = False
+
     beta0 = 1.2
-    beta_true = 0.5
+    beta_true = 1
     est_beta = False
 
     beta20 = 0.2
@@ -812,7 +876,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.zeros(N_par) #np.random.normal(0, 1, N_par)
+        x0 = np.ones(N_par) #np.random.normal(0, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = x0.copy() #np.random.normal(0, 1, N_par)
 
@@ -820,17 +884,17 @@ if __name__ == "__main__":
             xt, yt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
                                   fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
-                                  beta2=beta2_true)
+                                  beta2=beta2_true, stochastic_volatility=stochastic_volatility, alpha2=alpha2_true)
         elif cucker_smale:
             xt, vt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
                                   fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
-                                  beta2=beta2_true)
+                                  beta2=beta2_true, stochastic_volatility=stochastic_volatility, alpha2=alpha2_true)
         else:
             xt = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
                                   Aij=None, Lij=None, sigma=sigma, x0=x0, dt=dt, seed=seed, kuramoto=kuramoto,
                                   fitzhugh=fitzhugh, y0=y0, gamma=gamma_true, cucker_smale=cucker_smale, v0=v0,
-                                  beta2=beta2_true)
+                                  beta2=beta2_true, stochastic_volatility=stochastic_volatility, alpha2=alpha2_true)
 
         # parameter estimation
         if True:
