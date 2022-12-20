@@ -647,7 +647,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
                                 * (-averaging_func(grad_theta2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N_v[i, 2, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
-                                * (dvt - (- grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
+                                * (dvt - (- grad_v(vt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
 
         # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
@@ -679,14 +679,14 @@ if __name__ == "__main__":
         os.makedirs(path)
 
     # output
-    save_plots = False
+    save_plots = True
 
     # simulation parameters
     N_obs = 1
-    N_par = 20
-    T = 2000
+    N_par = 50
+    T = 5000
     dt = 0.1
-    sigma = 1
+    sigma = 0.5
 
     quadratic = False
     bistable = False
@@ -737,22 +737,22 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_kuramoto
         grad_x_grad_w = grad_x_grad_kuramoto
 
-    seeds = range(2)
+    seeds = range(20)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.02
+    gamma = 0.04 #0.04 for alpha, 0.25 for beta
 
     # parameters
     alpha0 = 1.5
-    alpha_true = 0.4
-    est_alpha = False
+    alpha_true = 0.9
+    est_alpha = True
 
-    beta0 = 1.0
-    beta_true = 0.2
-    est_beta = True
+    beta0 = 1.2
+    beta_true = 0.5
+    est_beta = False
 
     beta20 = 0.2
     beta2_true = 0.2
@@ -762,7 +762,7 @@ if __name__ == "__main__":
     gamma_true = 0.3
     est_gamma = False
 
-    N_est = 5
+    N_est = 10
 
     # plotting
     plot_each_run = False
@@ -854,24 +854,34 @@ if __name__ == "__main__":
             if plot_each_run:
                 if est_alpha and not est_beta and not est_gamma:
                     plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C0")
-                    plt.axhline(y=alpha_true, linestyle="--", color="C1")
+                    plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C1")
+                    plt.axhline(y=alpha_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
+                    plt.pause(2)
+                    plt.close()
                 if est_beta and not est_alpha and not est_gamma:
                     plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C0")
-                    plt.axhline(y=beta_true, linestyle="--", color="C1")
+                    plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C1")
+                    plt.axhline(y=beta_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
+                    plt.pause(2)
+                    plt.close()
                 if est_gamma and not est_alpha and not est_beta:
                     plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C0")
-                    plt.axhline(y=gamma_true, linestyle="--", color="C1")
+                    plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C1")
+                    plt.axhline(y=gamma_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
+                    plt.pause(2)
+                    plt.close()
     if True:
         if plot_mean_run:
+            if plot_each_run:
+                cols = ["C1", "C2"]
+            else:
+                cols = ["C0", "C1"]
             if est_alpha and not est_beta and not est_gamma:
                 plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
                 plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
