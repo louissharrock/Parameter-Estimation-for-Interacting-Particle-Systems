@@ -92,6 +92,18 @@ def grad_x2_grad_cucker_smale(x, v, alpha1, alpha2):
     return num / denom
 
 
+## (Gradient of) stochastic volatility potential
+def grad_stochastic_volatility(x, alpha1, alpha2):
+    return x * (alpha1 * x - alpha2)
+
+def grad_theta1_grad_stochastic_volatility(x, alpha1, alpha2):
+    return x * x
+
+def grad_theta2_grad_stochastic_volatility(x, alpha1, alpha2):
+    return - x
+
+def grad_x_grad_stochastic_volatility(x, alpha1, alpha2):
+    return 2 * alpha1 * x - alpha2
 
 #############################
 
@@ -123,7 +135,7 @@ def grad_x2_grad_cucker_smale(x, v, alpha1, alpha2):
 
 def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadratic, beta=0.1, Aij=None, Lij=None,
                  sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=1, gamma=2, cucker_smale=False,
-                 v0=1, beta2=0.5):
+                 v0=1, beta2=0.5, stochastic_volatility=False, alpha2=0.5):
 
     # check inputs
     if fitzhugh:
@@ -140,6 +152,11 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
 
     if kuramoto:
         assert grad_w == grad_kuramoto
+
+    if stochastic_volatility:
+        assert alpha2 is not None
+        assert grad_v == grad_stochastic_volatility
+        assert grad_w == grad_quadratic
 
     # set random seed
     np.random.seed(seed)
@@ -171,6 +188,13 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
             beta2 = [beta2] * (nt+1)
         if type(beta2) is float:
             beta2 = [beta2] * (nt+1)
+
+    if stochastic_volatility:
+        if type(alpha2) is int:
+            alpha2 = [alpha2] * (nt+1)
+        if type(alpha2) is float:
+            alpha2 = [alpha2] * (nt+1)
+
 
     # initialise xt
     xt = np.zeros((nt + 1, N))
@@ -219,6 +243,12 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                 while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
                     xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
                     xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
+        elif stochastic_volatility:
+            for i in tqdm(range(0, nt)):
+                xt[i + 1, :] = xt[i, :] \
+                               - grad_v(xt[i, :], alpha[i], alpha2[i]) * dt \
+                               - grad_w(xt[i, :] - np.mean(xt[i, :]), beta[i]) * dt \
+                               + sigma * xt[i, :] ** 1.5 * dwt[i, :]
         else:
             if grad_w == grad_quadratic:
                 for i in tqdm(range(0, nt)):
