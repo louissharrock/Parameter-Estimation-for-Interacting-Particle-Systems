@@ -25,15 +25,19 @@ import scipy.special
 import scipy.integrate as integrate
 from scipy.optimize import fsolve
 from sympy import symbols, solve
+import sys
 
 default_directory = "/Users/Louis"
-code_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code"
-results_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/code/results"
-results_directory = "/Users/Louis/Documents/PhD/Results/MVSDE Paper/results"
-fig_directory = "/Users/Louis/Google Drive/MPE CDT/PhD/Year 3/McKean-Vlasov Project/notes/figures/sde_sims"
-fig_directory = "/Users/Louis/Desktop/figures"
+code_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Est/Code"
+results_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Est/Code/old_paper_results"
+fig_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Est/Code/old_paper_figs"
 
-import sys
+if not os.path.exists(figures_directory):
+    os.makedirs(figures_directory)
+
+if not os.path.exists(results_directory):
+   os.makedirs(results_directory)
+
 sys.path.append(code_directory)
 from param_est_interac_funcs import * 
 
@@ -2121,10 +2125,10 @@ for m in range(start_loop,end_loop):
         np.save("mean_field_rmle_alpha_different_N_T_1000_n_samples_500_mvsde_v4",alpha_est_rml_mvsde)
         
     if m==2:
-        np.save("mean_field_rmle_alpha_different_N_T_1000_n_samples_500_both_params_ips_v4",alpha_est_rml_ips_both)
-        np.save("mean_field_rmle_alpha_different_N_T_1000_n_samples_500_both_params_mvsde_v4",alpha_est_rml_mvsde_both)
-        np.save("mean_field_rmle_beta_different_N_T_1000_n_samples_500_both_params_ips_v4",alpha_est_rml_ips_both)
-        np.save("mean_field_rmle_beta_different_N_T_1000_n_samples_500_both_params_mvsde_v4",alpha_est_rml_mvsde_both)
+        np.save("alpha_est_ips", alpha_est_rml_ips_both)
+        np.save("alpha_est_mvsde", alpha_est_rml_mvsde_both)
+        np.save("beta_est_ips", beta_est_rml_ips_both)
+        np.save("beta_est_mvsde", beta_est_rml_mvsde_both)
     
     os.chdir(default_directory)
     
@@ -2132,19 +2136,17 @@ for m in range(start_loop,end_loop):
     
 ## reopen!
 os.chdir(results_directory)
-#beta_est_rml_ips = np.load("mean_field_rmle_beta_different_N_T_1000_n_samples_500_ips_v4.npy")
-#alpha_est_rml_ips = np.load("mean_field_rmle_alpha_different_N_T_1000_n_samples_500_ips_v4.npy")
 
-beta_est_rml_mvsde = np.load("mean_field_rmle_beta_different_N_T_1000_n_samples_500_mvsde_v4.npy")
-alpha_est_rml_mvsde = np.load("mean_field_rmle_alpha_different_N_T_1000_n_samples_500_mvsde_v4.npy")
+#alpha_est_rml_mvsde = np.load("alpha_est_mvsde.npy")
+#beta_est_rml_mvsde = np.load("beta_est_mvsde.npy")
 
-beta_est_rml_ips = np.load("mean_field_rmle_beta_different_N_T_5000_n_samples_500_both_param_est.npy")
-alpha_est_rml_ips = np.load("mean_field_rmle_alpha_different_N_T_5000_n_samples_500_both_param_est.npy")
+alpha_est_rml_ips = np.load("alpha_est_ips.npy")
+beta_est_rml_ips = np.load("beta_est_ips.npy")
 
 os.chdir(default_directory)    
    
-
-if False:
+plot_estimates = False
+if plot_estimates:
     ## plot estimates (beta)
     for i in range(N_vals.shape[0]):
         for j in range(seed_vals.shape[0]):
@@ -2168,55 +2170,59 @@ if False:
         #save_plot(fig_directory,filename)
         plt.show()
 
-       
-## plot MSE (beta) (IPS)
-t_start_index = 0
-for i in range(N_vals.shape[0]):
-    plt.plot((t_vals[t_start_index:]),np.mean((beta - beta_est_rml_ips[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
-    plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[(\theta_2-\hat{\theta}_{2,t})^2\right]$')
-    #plt.plot(t_vals[0:],(t_vals[0:])**(-0.7))
-    #plt.yscale("log")
-    plt.xscale("log")
-    plt.legend(ncol=1)
-filename = 'mean_field_rmle_T_5000_n_samples_500_beta_ips_mse_v4_big_text_both.pdf'
-save_plot(fig_directory,filename)
-plt.show()
+plot_mse_ips = True
+if plot_mse_ips:
+    t_start_index = 0
+    # alpha
+    for i in range(N_vals.shape[0]):
+        plt.plot(t_vals[t_start_index:],np.mean((alpha - alpha_est_rml_ips[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
+        plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[({\theta}^N_{1,t}-\theta_{0,1})^2\right]$')
+        #plt.yscale("log")
+        plt.xscale("log")
+        plt.legend(ncol=2)
+    filename = 'alpha_est_ips.pdf'
+    save_plot(fig_directory, filename)
+    plt.show()
 
-## plot MSE (beta) (MVSDE)
-t_start_index = 0
-for i in range(N_vals.shape[0]):
-    plt.plot((t_vals[t_start_index:]),np.mean((beta - beta_est_rml_mvsde[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
-    plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[(\theta_2-\hat{\theta}_{2,t})^2\right]$')
-    #plt.plot(t_vals[0:],(t_vals[0:])**(-0.7))
-    #plt.yscale("log")
-    plt.xscale("log")
-    plt.legend()
-filename = 'mean_field_rmle_T_5000_n_samples_500_beta_mvsde_mse_v4.pdf'
-save_plot(fig_directory,filename)
-plt.show()
+    # beta
+    for i in range(N_vals.shape[0]):
+        plt.plot((t_vals[t_start_index:]),np.mean((beta - beta_est_rml_ips[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
+        plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[({\theta}^N_{2,t}-\theta_{0,2})^2\right]$')
+        #plt.plot(t_vals[0:],(t_vals[0:])**(-0.7))
+        #plt.yscale("log")
+        plt.xscale("log")
+        plt.legend(ncol=1)
+    filename = 'beta_est_ips.pdf'
+    save_plot(fig_directory, filename)
+    plt.show()
 
-## plot MSE (alpha) (IPS)
-for i in range(N_vals.shape[0]):
-    plt.plot(t_vals[t_start_index:],np.mean((alpha - alpha_est_rml_ips[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
-    plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[(\theta_1-\hat{\theta}_{1,t})^2\right]$')
-    #plt.yscale("log")
-    plt.xscale("log")
-    plt.legend(ncol=2)
-filename = 'mean_field_rmle_T_5000_n_samples_500_alpha_ips_mse_v4_big_text_both.pdf'
-save_plot(fig_directory,filename)
-plt.show()
+plot_mse_mvsde = False
+if plot_mse_mvsde:
+    t_start_index = 0
+    # alpha
+    for i in range(N_vals.shape[0]):
+        plt.plot(t_vals[t_start_index:], np.mean((alpha - alpha_est_rml_mvsde[t_start_index:, i, :]) ** 2, axis=1),
+                 label="N=%d" % N_vals[i])
+        plt.xlabel('t');
+        plt.ylabel(r'$\mathbb{E}\left[(\theta_1-\hat{\theta}_{1,t})^2\right]$')
+        # plt.yscale("log")
+        plt.xscale("log")
+        plt.legend()
+    filename = 'mean_field_rmle_T_5000_n_samples_500_alpha_mvsde_mse_v4.pdf'
+    save_plot(fig_directory, filename)
+    plt.show()
 
-## plot MSE (alpha) (MVSDE)
-for i in range(N_vals.shape[0]):
-    plt.plot(t_vals[t_start_index:],np.mean((alpha - alpha_est_rml_mvsde[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
-    plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[(\theta_1-\hat{\theta}_{1,t})^2\right]$')
-    #plt.yscale("log")
-    plt.xscale("log")
-    plt.legend()
-filename = 'mean_field_rmle_T_5000_n_samples_500_alpha_mvsde_mse_v4.pdf'
-save_plot(fig_directory,filename)
-plt.show()
-
+    # beta
+    for i in range(N_vals.shape[0]):
+        plt.plot((t_vals[t_start_index:]),np.mean((beta - beta_est_rml_mvsde[t_start_index:,i,:])**2,axis=1),label="N=%d" %N_vals[i])
+        plt.xlabel('t'); plt.ylabel(r'$\mathbb{E}\left[(\theta_2-\hat{\theta}_{2,t})^2\right]$')
+        #plt.plot(t_vals[0:],(t_vals[0:])**(-0.7))
+        #plt.yscale("log")
+        plt.xscale("log")
+        plt.legend()
+    filename = 'mean_field_rmle_T_5000_n_samples_500_beta_mvsde_mse_v4.pdf'
+    save_plot(fig_directory,filename)
+    plt.show()
 
 ## plot variance (beta) (IPS)
 for i in range(N_vals.shape[0]):
