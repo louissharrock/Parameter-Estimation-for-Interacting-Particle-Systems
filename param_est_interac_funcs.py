@@ -210,8 +210,8 @@ def influence_func_exp_grad(r,mu,sd):
 
 
 ## Bump Interaction Kernel ##
-def influence_func_bump(r,centre=0.5,width=1,squeeze=1):
-    if(-width/2+centre<r<width/2+centre):
+def influence_func_bump(r, centre=0.5, width=1, squeeze=1):
+    if(-width/2 + centre < r < width/2 + centre):
         return np.exp(-squeeze/(1-(2/width*(r-centre))**2))
     else:
         return 0
