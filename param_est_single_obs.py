@@ -1082,21 +1082,21 @@ if __name__ == "__main__":
 
     # general
     root = "results/"
-    leaf = "linear_ips"
+    leaf = "bistable_v_quadratic_w"
     path = os.path.join(root, leaf)
     if not os.path.exists(path):
         os.makedirs(path)
 
     # output
-    save_plots = True
+    save_plots = False
 
     # simulation parameters
-    N_par = 100
+    N_par = 50
     T = 5000
     dt = 0.1
 
-    quadratic = True
-    bistable = False
+    quadratic = False
+    bistable = True
     kuramoto = False
     fitzhugh = False
     cucker_smale = False
@@ -1154,7 +1154,7 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_quadratic
         grad_x_grad_w = grad_x_grad_quadratic
 
-    seeds = range(20)
+    seeds = range(10)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
@@ -1163,17 +1163,17 @@ if __name__ == "__main__":
     gamma = 0.005
 
     # parameters
-    alpha0 = 1
-    alpha_true = 0.5
-    est_alpha = False
+    alpha0 = 2.0
+    alpha_true = 1.5
+    est_alpha = True
 
     alpha20 = 2.5
     alpha2_true = 3.5
     est_alpha2 = False
 
-    beta0 = 0.8
-    beta_true = 0.1
-    est_beta = True
+    beta0 = 0.3
+    beta_true = 0.7
+    est_beta = False
 
     beta20 = 0.8
     beta2_true = 0.1
@@ -1187,7 +1187,7 @@ if __name__ == "__main__":
     sigma_true = 0.1
     est_sigma = False
 
-    N_est = 100
+    N_est = 2
 
     # plotting
     plot_each_run = False
@@ -1196,9 +1196,10 @@ if __name__ == "__main__":
     all_alpha_t = np.zeros((nt + 1, len(seeds), 2))
     all_beta_t = np.zeros((nt + 1, len(seeds), 2))
 
-    if quadratic:
+    if quadratic or bistable:
         all_alpha_ips_t = np.zeros((nt + 1, len(seeds), 2))
         all_beta_ips_t = np.zeros((nt + 1, len(seeds), 2))
+        all_ips_times = np.zeros((len(seeds), 2))
 
     if fitzhugh:
         all_gamma_t = np.zeros((nt + 1, len(seeds), 2))
@@ -1215,7 +1216,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.random.normal(0, 1, N_par)
+        x0 = np.ones(N_par) #np.random.normal(0, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = x0.copy() #np.random.normal(0, 1, N_par)
 
@@ -1311,7 +1312,7 @@ if __name__ == "__main__":
                 #                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
                 #                                     beta_true, est_beta, sigma_true, gamma, N_est, seed, kuramoto=kuramoto,
                 #                                     average=False)
-                if quadratic:
+                if quadratic or bistable:
                     alpha_t_ips_one, beta_t_ips_one = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
                                                                  alpha_true, est_alpha, grad_w, grad_theta_grad_w,
                                                                  grad_x_grad_w, beta0, beta_true, est_beta, sigma_true,
@@ -1334,7 +1335,7 @@ if __name__ == "__main__":
             else:
                 #all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0] = alpha_t_one, beta_t_one
                 #all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1] = alpha_t_two, beta_t_two
-                if quadratic:
+                if quadratic or bistable:
                     all_alpha_ips_t[:, idx, 0], all_beta_ips_t[:, idx, 0] = alpha_t_ips_one, beta_t_ips_one
                     all_alpha_ips_t[:, idx, 1], all_beta_ips_t[:, idx, 1] = alpha_t_ips_two, beta_t_ips_two
 
@@ -1342,7 +1343,7 @@ if __name__ == "__main__":
                 if est_alpha and not est_beta and not est_gamma:
                     plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
                     plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C1")
-                    if quadratic:
+                    if quadratic or bistable:
                         plt.plot(t, alpha_t_ips_one, label=r"$\alpha_{t}^N$ (IPS Estimator 1)", color="C0")
                         plt.plot(t, alpha_t_ips_two, label=r"$\alpha_{t}^N$ (IPS Estimator 2)", color="C1")
                     plt.axhline(y=alpha_true, linestyle="--", color="black")
@@ -1375,7 +1376,7 @@ if __name__ == "__main__":
             if est_alpha and not est_alpha2 and not est_beta and not est_gamma and not est_sigma:
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
-                if quadratic:
+                if quadratic or bistable:
                     plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
                     plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=alpha_true, linestyle="--", color="black")
@@ -1394,7 +1395,7 @@ if __name__ == "__main__":
             elif est_beta and not est_alpha and not est_alpha2 and not est_gamma and not est_sigma:
                 #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
-                if quadratic:
+                if quadratic or bistable:
                     plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
                     plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=beta_true, linestyle="--", color="black")
@@ -1411,15 +1412,15 @@ if __name__ == "__main__":
                     plt.savefig(path + "/gamma_est_all.eps", dpi=300)
                 plt.show()
             elif est_alpha and est_beta:
-                plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
-                if quadratic:
+                #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+                #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
+                if quadratic or bistable:
                     plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
                     plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=alpha_true, linestyle="--", color="black")
-                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
-                if quadratic:
+                #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+                #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
+                if quadratic or bistable:
                     plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
                     plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=beta_true, linestyle="--", color="black")
