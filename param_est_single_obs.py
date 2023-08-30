@@ -411,46 +411,33 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
     # number of time steps
     nt = xt.shape[0] - 1
 
+    # learning rate
+    if type(gamma) is float or type(gamma) is int:
+        all_gamma = [gamma] * (nt + 1)
+    else:
+        all_gamma = gamma
+
     # parameters
-    if type(alpha_true) is float:
+    if type(alpha_true) is float or type(alpha_true) is int:
         alpha_true = [alpha_true] * (nt + 1)
 
-    if type(alpha_true) is int:
-        alpha_true = [alpha_true] * (nt + 1)
-
-    if type(beta_true) is float:
-        beta_true = [beta_true] * (nt + 1)
-
-    if type(beta_true) is int:
+    if type(beta_true) is float or type(beta_true) is int:
         beta_true = [beta_true] * (nt + 1)
 
     if fitzhugh:
-        if type(gamma_true) is float:
-            gamma_true = [gamma_true] * (nt + 1)
-
-        if type(gamma_true) is int:
+        if type(gamma_true) is float or type(gamma_true) is int:
             gamma_true = [gamma_true] * (nt + 1)
 
     if cucker_smale:
-        if type(beta2_true) is float:
-            beta2_true = [beta2_true] * (nt + 1)
-
-        if type(beta2_true) is int:
+        if type(beta2_true) is float or type(beta2_true) is int:
             beta2_true = [beta2_true] * (nt + 1)
 
     if stochastic_volatility:
-        if type(alpha2_true) is float:
+        if type(alpha2_true) is float or type(alpha2_true) is int:
             alpha2_true = [alpha2_true] * (nt + 1)
 
-        if type(alpha2_true) is int:
-            alpha2_true = [alpha2_true] * (nt + 1)
-
-        if type(sigma_true) is float:
+        if type(sigma_true) is float or type(sigma_true) is int:
             sigma_true = [sigma_true] * (nt + 1)
-
-        if type(sigma_true) is int:
-            sigma_true = [sigma_true] * (nt + 1)
-
 
     # initialise
     alpha_t = np.zeros(nt + 1)
@@ -734,29 +721,29 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # alpha_t
         if est_alpha:
             if fitzhugh:
-                alpha_t[i + 1] = alpha_t[i] + gamma \
+                alpha_t[i + 1] = alpha_t[i] + all_gamma[i] \
                                  * (-grad_theta_grad_v(xt[i], yt[i], alpha_t[i])
                                     + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                  * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             elif cucker_smale:
-                alpha_t[i + 1] = alpha_t[i] + gamma \
+                alpha_t[i + 1] = alpha_t[i] + all_gamma[i] \
                                 * (- grad_theta_grad_v(vt[i], alpha_t[i])
                                    - - averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N_v[i, 0, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
                                 * (dvt - (- grad_v(vt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
             elif kuramoto:
-                alpha_t[i + 1] = alpha_t[i] + gamma \
+                alpha_t[i + 1] = alpha_t[i] + all_gamma[i] \
                                  * (- grad_theta_grad_v(xt[i], alpha_t[i])
                                     + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                  * 1 / (sigma ** 2) \
                                  * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             elif stochastic_volatility:
-                alpha_t[i + 1] = alpha_t[i] + gamma \
+                alpha_t[i + 1] = alpha_t[i] + all_gamma[i] \
                                * (- grad_theta_grad_v(xt[i], alpha_t[i], alpha2_t[i])
                                   + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                * (dxt - (-grad_v(xt[i], alpha_t[i], alpha2_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             else:
-                alpha_t[i+1] = alpha_t[i] + gamma \
+                alpha_t[i+1] = alpha_t[i] + all_gamma[i] \
                                * (- grad_theta_grad_v(xt[i], alpha_t[i])
                                   + averaging_func(tildeyt1_N[i, 0, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                * 1 / (sigma ** 2) \
@@ -765,7 +752,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # alpha2_t (stochastic volatility only)
         if est_alpha2:
             if stochastic_volatility:
-                alpha2_t[i + 1] = alpha2_t[i] + gamma \
+                alpha2_t[i + 1] = alpha2_t[i] + all_gamma[i] \
                                * (- grad_theta2_grad_v(xt[i], alpha_t[i], alpha2_t[i])
                                   + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                * (dxt - (-grad_v(xt[i], alpha_t[i], alpha2_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
@@ -773,28 +760,28 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # beta_t
         if est_beta:
             if fitzhugh:
-                beta_t[i + 1] = beta_t[i] + gamma \
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] \
                                 * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
                                    - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             elif cucker_smale:
-                beta_t[i + 1] = beta_t[i] + gamma \
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] \
                                 * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_true[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N_v[i, 1, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
                                 * (dvt - (- grad_v(vt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], vt[i] - tildext2_N_v[i, :], beta_t[i], beta2_t[i]))) * dt)
             elif kuramoto:
-                beta_t[i + 1] = beta_t[i] + gamma \
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] \
                                 * (- averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
                                    - - averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * 1 / (sigma ** 2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             elif stochastic_volatility:
-                beta_t[i + 1] = beta_t[i] + (50*gamma) \
+                beta_t[i + 1] = beta_t[i] + (50*all_gamma[i]) \
                                 * (-averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
                                    + averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * (dxt - (-grad_v(xt[i], alpha_t[i], alpha2_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
             else:
-                beta_t[i + 1] = beta_t[i] + gamma \
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] \
                                 * (-averaging_func(grad_theta_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))
                                    + averaging_func(tildeyt1_N[i, 1, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], beta_t[i]))) \
                                 * 1/(sigma**2) * (dxt - (-grad_v(xt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt)
@@ -802,7 +789,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # beta2_t (cucker-smale only)
         if est_beta2:
             if cucker_smale:
-                beta2_t[i+1] = beta2_t[i] + gamma \
+                beta2_t[i+1] = beta2_t[i] + all_gamma[i] \
                                 * (-averaging_func(grad_theta2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))
                                    - - averaging_func(tildeyt1_N_v[i, 2, :] * grad_x2_grad_w(xt[i] - tildext1_N[i, :], vt[i] - tildext1_N_v[i, :], beta_t[i], beta2_t[i]))) \
@@ -811,7 +798,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
             if fitzhugh:
-                gamma_t[i + 1] = gamma_t[i] + gamma \
+                gamma_t[i + 1] = gamma_t[i] + all_gamma[i] \
                                  * (averaging_func(tildeyt1_N[i, 2, :] * grad_x_grad_w(xt[i]-tildext1_N[i,:], beta_t[i]))) \
                                  * (dxt - (- grad_v(xt[i], yt[i], alpha_t[i]) - averaging_func(grad_w(xt[i] - tildext2_N[i, :], beta_t[i]))) * dt) \
                                  + gamma \
@@ -820,7 +807,7 @@ def online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, alpha_t
         # sigma_t (stochastic volatility only)
         if est_sigma:
             if stochastic_volatility:
-                sigma_t[i + 1] = sigma_t[i] + gamma \
+                sigma_t[i + 1] = sigma_t[i] + all_gamma[i] \
                                  * (2 * sigma_t[i] * xt[i] ** 3) \
                                  * (dxt ** 2 - sigma_t[i] ** 2 * xt[i] ** 3 * dt)
 
@@ -925,46 +912,33 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
     # number of time steps
     nt = xt.shape[0] - 1
 
+    # learning rate
+    if type(gamma) is float or type(gamma) is int:
+        all_gamma = [gamma] * (nt + 1)
+    else:
+        all_gamma = gamma
+
     # parameters
-    if type(alpha_true) is float:
+    if type(alpha_true) is float or type(alpha_true) is int:
         alpha_true = [alpha_true] * (nt + 1)
 
-    if type(alpha_true) is int:
-        alpha_true = [alpha_true] * (nt + 1)
-
-    if type(beta_true) is float:
-        beta_true = [beta_true] * (nt + 1)
-
-    if type(beta_true) is int:
+    if type(beta_true) is float or type(beta_true) is int:
         beta_true = [beta_true] * (nt + 1)
 
     if fitzhugh:
-        if type(gamma_true) is float:
-            gamma_true = [gamma_true] * (nt + 1)
-
-        if type(gamma_true) is int:
+        if type(gamma_true) is float or type(gamma_true) is int:
             gamma_true = [gamma_true] * (nt + 1)
 
     if cucker_smale:
-        if type(beta2_true) is float:
-            beta2_true = [beta2_true] * (nt + 1)
-
-        if type(beta2_true) is int:
+        if type(beta2_true) is float or type(beta2_true) is int:
             beta2_true = [beta2_true] * (nt + 1)
 
     if stochastic_volatility:
-        if type(alpha2_true) is float:
+        if type(alpha2_true) is float or type(alpha2_true) is int:
             alpha2_true = [alpha2_true] * (nt + 1)
 
-        if type(alpha2_true) is int:
-            alpha2_true = [alpha2_true] * (nt + 1)
-
-        if type(sigma_true) is float:
+        if type(sigma_true) is float or type(sigma_true) is int:
             sigma_true = [sigma_true] * (nt + 1)
-
-        if type(sigma_true) is int:
-            sigma_true = [sigma_true] * (nt + 1)
-
 
     # initialise
     alpha_t = np.zeros(nt + 1)
@@ -1013,7 +987,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
         dxt = xtN[i + 1, :] - xtN[i, :]
 
         if fitzhugh:
-            dyt = yt[i+1, :] - yt[i, :]
+            dyt = ytN[i+1, :] - ytN[i, :]
 
         if cucker_smale:
             dvt = vt[i+1, :] - vt[i, :]
@@ -1022,7 +996,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
         # alpha_t
         if est_alpha:
             if fitzhugh:
-                alpha_t[i+1] = alpha_t[i] # to do
+                alpha_t[i+1] = alpha_t[i] + all_gamma[i] * (-grad_theta_grad_v(xtN[i, 0], ytN[i, 0], alpha_t[i])) * (dxt[0] - (- grad_v(xtN[i, 0], ytN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
             elif cucker_smale:
                 alpha_t[i+1] = alpha_t[i] # to do
             elif kuramoto:
@@ -1030,7 +1004,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
             elif stochastic_volatility:
                 alpha_t[i+1] = alpha_t[i] # to do
             else:
-                alpha_t[i+1] = alpha_t[i] + gamma * (-grad_theta_grad_v(xtN[i, 0], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
+                alpha_t[i+1] = alpha_t[i] + all_gamma[i] * (-grad_theta_grad_v(xtN[i, 0], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
 
         # alpha2_t (stochastic volatility only)
         if est_alpha2:
@@ -1040,7 +1014,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
         # beta_t
         if est_beta:
             if fitzhugh:
-                beta_t[i + 1] = beta_t[i] # to do
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] * (- averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * (dxt[0] - (- grad_v(xtN[i, 0], ytN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
             elif cucker_smale:
                 beta_t[i + 1] = beta_t[i] # to do
             elif kuramoto:
@@ -1048,7 +1022,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
             elif stochastic_volatility:
                 beta_t[i + 1] = beta_t[i] # to do
             else:
-                beta_t[i + 1] = beta_t[i] + gamma * (-averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] * (-averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
 
         # beta2_t (cucker-smale only)
         if est_beta2:
@@ -1058,7 +1032,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0, al
         # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
             if fitzhugh:
-                gamma_t[i + 1] = gamma_t[i] # to do
+                gamma_t[i + 1] = gamma_t[i] + all_gamma[i] * (dyt[0] - (gamma_t[i] + xtN[i, 0]) * dt)
 
         # sigma_t (stochastic volatility only)
         if est_sigma:
@@ -1082,23 +1056,23 @@ if __name__ == "__main__":
 
     # general
     root = "results/"
-    leaf = "bistable_v_quadratic_w"
+    leaf = "fitzhugh_nagumo"
     path = os.path.join(root, leaf)
     if not os.path.exists(path):
         os.makedirs(path)
 
     # output
-    save_plots = False
+    save_plots = True
 
     # simulation parameters
-    N_par = 50
+    N_par = 100
     T = 5000
     dt = 0.1
 
     quadratic = False
-    bistable = True
+    bistable = False
     kuramoto = False
-    fitzhugh = False
+    fitzhugh = True
     cucker_smale = False
     stochastic_volatility = False
 
@@ -1154,26 +1128,26 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_quadratic
         grad_x_grad_w = grad_x_grad_quadratic
 
-    seeds = range(10)
+    seeds = range(20)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.005
+    gamma = 0.005 #[min(.1, .1/(1+t_val)**(.5)) for t_val in t] #0.005
 
     # parameters
-    alpha0 = 2.0
-    alpha_true = 1.5
+    alpha0 = 1.5
+    alpha_true = 1.0
     est_alpha = True
 
     alpha20 = 2.5
     alpha2_true = 3.5
     est_alpha2 = False
 
-    beta0 = 0.3
-    beta_true = 0.7
-    est_beta = False
+    beta0 = 0.5
+    beta_true = 0.1
+    est_beta = True
 
     beta20 = 0.8
     beta2_true = 0.1
@@ -1181,10 +1155,10 @@ if __name__ == "__main__":
 
     gamma0 = 1.0
     gamma_true = 0.3
-    est_gamma = False
+    est_gamma = True
 
     sigma0 = 0.5
-    sigma_true = 0.1
+    sigma_true = 1
     est_sigma = False
 
     N_est = 2
@@ -1195,14 +1169,12 @@ if __name__ == "__main__":
 
     all_alpha_t = np.zeros((nt + 1, len(seeds), 2))
     all_beta_t = np.zeros((nt + 1, len(seeds), 2))
-
-    if quadratic or bistable:
-        all_alpha_ips_t = np.zeros((nt + 1, len(seeds), 2))
-        all_beta_ips_t = np.zeros((nt + 1, len(seeds), 2))
-        all_ips_times = np.zeros((len(seeds), 2))
+    all_alpha_ips_t = np.zeros((nt + 1, len(seeds), 2))
+    all_beta_ips_t = np.zeros((nt + 1, len(seeds), 2))
 
     if fitzhugh:
         all_gamma_t = np.zeros((nt + 1, len(seeds), 2))
+        all_gamma_ips_t = np.zeros((nt + 1, len(seeds), 2))
 
     if cucker_smale:
         all_beta2_t = np.zeros((nt + 1, len(seeds), 2))
@@ -1216,7 +1188,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.ones(N_par) #np.random.normal(0, 1, N_par)
+        x0 = np.random.normal(0, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = x0.copy() #np.random.normal(0, 1, N_par)
 
@@ -1245,20 +1217,38 @@ if __name__ == "__main__":
         # parameter estimation
         if True:
             if fitzhugh:
-                alpha_t_one, beta_t_one, gamma_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v,
-                                                                  alpha0, alpha_true, est_alpha, grad_w,
-                                                                  grad_theta_grad_w, grad_x_grad_w, beta0, beta_true,
-                                                                  est_beta, sigma_true, gamma, N_est, seed,
-                                                                  average=True,  fitzhugh=fitzhugh, yt=yt,
-                                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
-                                                                  gamma_true=gamma_true, est_gamma=est_gamma)
-                alpha_t_two, beta_t_two, gamma_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v,
-                                                                  alpha0, alpha_true, est_alpha, grad_w,
-                                                                  grad_theta_grad_w, grad_x_grad_w, beta0, beta_true,
-                                                                  est_beta, sigma_true, gamma, N_est, seed,
-                                                                  average=False,  fitzhugh=fitzhugh, yt=yt,
-                                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
-                                                                  gamma_true=gamma_true, est_gamma=est_gamma)
+                #alpha_t_one, beta_t_one, gamma_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v,
+                #                                                  alpha0, alpha_true, est_alpha, grad_w,
+                #                                                  grad_theta_grad_w, grad_x_grad_w, beta0, beta_true,
+                #                                                  est_beta, sigma_true, gamma, N_est, seed,
+                #                                                  average=True,  fitzhugh=fitzhugh, yt=yt,
+                #                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
+                #                                                  gamma_true=gamma_true, est_gamma=est_gamma)
+                #alpha_t_two, beta_t_two, gamma_t_two = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v,
+                #                                                  alpha0, alpha_true, est_alpha, grad_w,
+                #                                                  grad_theta_grad_w, grad_x_grad_w, beta0, beta_true,
+                #                                                  est_beta, sigma_true, gamma, N_est, seed,
+                #                                                  average=False,  fitzhugh=fitzhugh, yt=yt,
+                #                                                  grad_x2_grad_v=grad_x2_grad_v, gamma0=gamma0,
+                #                                                  gamma_true=gamma_true, est_gamma=est_gamma)
+                alpha_t_ips_one, beta_t_ips_one, gamma_t_ips_one = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v,
+                                                                                  grad_x_grad_v, alpha0, alpha_true,
+                                                                                  est_alpha, grad_w, grad_theta_grad_w,
+                                                                                  grad_x_grad_w, beta0, beta_true,
+                                                                                  est_beta, sigma_true, gamma, N_est,
+                                                                                  seed, average=True, fitzhugh=fitzhugh,
+                                                                                  ytN=ytN, gamma0=gamma0,
+                                                                                  gamma_true=gamma_true,
+                                                                                  est_gamma=est_gamma)
+                alpha_t_ips_two, beta_t_ips_two, gamma_t_ips_two = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v,
+                                                                                  grad_x_grad_v, alpha0, alpha_true,
+                                                                                  est_alpha, grad_w, grad_theta_grad_w,
+                                                                                  grad_x_grad_w, beta0, beta_true,
+                                                                                  est_beta, sigma_true, gamma, N_est,
+                                                                                  seed, average=False, fitzhugh=fitzhugh,
+                                                                                  ytN=ytN, gamma0=gamma0,
+                                                                                  gamma_true=gamma_true,
+                                                                                  est_gamma=est_gamma)
             elif cucker_smale:
                 alpha_t_one, beta_t_one, beta2_t_one = online_est(xt, dt, grad_v, grad_theta_grad_v, grad_x_grad_v,
                                                                   alpha0, alpha_true, est_alpha, grad_w,
@@ -1312,20 +1302,21 @@ if __name__ == "__main__":
                 #                                     est_alpha, grad_w, grad_theta_grad_w, grad_x_grad_w, beta0,
                 #                                     beta_true, est_beta, sigma_true, gamma, N_est, seed, kuramoto=kuramoto,
                 #                                     average=False)
-                if quadratic or bistable:
-                    alpha_t_ips_one, beta_t_ips_one = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
-                                                                 alpha_true, est_alpha, grad_w, grad_theta_grad_w,
-                                                                 grad_x_grad_w, beta0, beta_true, est_beta, sigma_true,
-                                                                 gamma, N_est, seed, kuramoto=kuramoto, average=True)
-                    alpha_t_ips_two, beta_t_ips_two = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
-                                                                 alpha_true, est_alpha, grad_w, grad_theta_grad_w,
-                                                                 grad_x_grad_w, beta0, beta_true, est_beta, sigma_true,
-                                                                 gamma, N_est, seed, kuramoto=kuramoto, average=False)
+                alpha_t_ips_one, beta_t_ips_one = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                             alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                             grad_x_grad_w, beta0, beta_true, est_beta, sigma_true,
+                                                             gamma, N_est, seed, kuramoto=kuramoto, average=True)
+                alpha_t_ips_two, beta_t_ips_two = online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, grad_x_grad_v, alpha0,
+                                                             alpha_true, est_alpha, grad_w, grad_theta_grad_w,
+                                                             grad_x_grad_w, beta0, beta_true, est_beta, sigma_true,
+                                                             gamma, N_est, seed, kuramoto=kuramoto, average=False)
 
 
             if fitzhugh:
-                all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_gamma_t[:, idx, 0] = alpha_t_one, beta_t_one, gamma_t_one
-                all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_gamma_t[:, idx, 1] = alpha_t_two, beta_t_two, gamma_t_two
+                #all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_gamma_t[:, idx, 0] = alpha_t_one, beta_t_one, gamma_t_one
+                #all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_gamma_t[:, idx, 1] = alpha_t_two, beta_t_two, gamma_t_two
+                all_alpha_ips_t[:, idx, 0], all_beta_ips_t[:, idx, 0], all_gamma_ips_t[:, idx, 0] = alpha_t_ips_one, beta_t_ips_one, gamma_t_ips_one
+                all_alpha_ips_t[:, idx, 1], all_beta_ips_t[:, idx, 1], all_gamma_ips_t[:, idx, 1] = alpha_t_ips_two, beta_t_ips_two, gamma_t_ips_two
             elif cucker_smale:
                 all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0], all_beta2_t[:, idx, 0] = alpha_t_one,beta_t_one, beta2_t_one
                 all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1], all_beta2_t[:, idx, 1] = alpha_t_two, beta_t_two, beta2_t_two
@@ -1335,33 +1326,35 @@ if __name__ == "__main__":
             else:
                 #all_alpha_t[:, idx, 0], all_beta_t[:, idx, 0] = alpha_t_one, beta_t_one
                 #all_alpha_t[:, idx, 1], all_beta_t[:, idx, 1] = alpha_t_two, beta_t_two
-                if quadratic or bistable:
-                    all_alpha_ips_t[:, idx, 0], all_beta_ips_t[:, idx, 0] = alpha_t_ips_one, beta_t_ips_one
-                    all_alpha_ips_t[:, idx, 1], all_beta_ips_t[:, idx, 1] = alpha_t_ips_two, beta_t_ips_two
+                all_alpha_ips_t[:, idx, 0], all_beta_ips_t[:, idx, 0] = alpha_t_ips_one, beta_t_ips_one
+                all_alpha_ips_t[:, idx, 1], all_beta_ips_t[:, idx, 1] = alpha_t_ips_two, beta_t_ips_two
 
             if plot_each_run:
                 if est_alpha and not est_beta and not est_gamma:
-                    plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C1")
-                    if quadratic or bistable:
-                        plt.plot(t, alpha_t_ips_one, label=r"$\alpha_{t}^N$ (IPS Estimator 1)", color="C0")
-                        plt.plot(t, alpha_t_ips_two, label=r"$\alpha_{t}^N$ (IPS Estimator 2)", color="C1")
+                    #plt.plot(t, alpha_t_one, label=r"$\alpha_{t}^N$ (Estimator 1)", color="C0")
+                    #plt.plot(t, alpha_t_two, label=r"$\alpha_{t}^N$ (Estimator 2)", color="C1")
+                    plt.plot(t, alpha_t_ips_one, label=r"$\alpha_{t}^N$ (IPS Estimator 1)", color="C0")
+                    plt.plot(t, alpha_t_ips_two, label=r"$\alpha_{t}^N$ (IPS Estimator 2)", color="C1")
                     plt.axhline(y=alpha_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
                     plt.pause(2)
                     plt.close()
                 if est_beta and not est_alpha and not est_gamma:
-                    plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C1")
+                    #plt.plot(t, beta_t_one, label=r"$\beta_{t}^N$ (Estimator 1)", color="C0")
+                    #plt.plot(t, beta_t_two, label=r"$\beta_{t}^N$ (Estimator 2)", color="C1")
+                    plt.plot(t, beta_t_ips_one, label=r"$\beta_{t}^N$ (IPS Estimator 1)", color="C0")
+                    plt.plot(t, beta_t_ips_two, label=r"$\beta_{t}^N$ (IPS Estimator 2)", color="C1")
                     plt.axhline(y=beta_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
                     plt.pause(2)
                     plt.close()
                 if est_gamma and not est_alpha and not est_beta:
-                    plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
-                    plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C1")
+                    #plt.plot(t, gamma_t_one, label=r"$\gamma_{t}^N$ (Estimator 1)", color="C0")
+                    #plt.plot(t, gamma_t_two, label=r"$\gamma_{t}^N$ (Estimator 2)", color="C1")
+                    plt.plot(t, gamma_t_ips_one, label=r"$\gamma_{t}^N$ (IPS Estimator 1)", color="C0")
+                    plt.plot(t, gamma_t_ips_two, label=r"$\gamma_{t}^N$ (IPS Estimator 2)", color="C1")
                     plt.axhline(y=gamma_true, linestyle="--", color="black")
                     plt.legend()
                     plt.show()
@@ -1376,9 +1369,8 @@ if __name__ == "__main__":
             if est_alpha and not est_alpha2 and not est_beta and not est_gamma and not est_sigma:
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
-                if quadratic or bistable:
-                    plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
-                    plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=alpha_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:
@@ -1395,61 +1387,46 @@ if __name__ == "__main__":
             elif est_beta and not est_alpha and not est_alpha2 and not est_gamma and not est_sigma:
                 #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
-                if quadratic or bistable:
-                    plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
-                    plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=beta_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:
                     plt.savefig(path + "/beta_est_all_ips.eps", dpi=300)
                 plt.show()
             elif est_gamma and not est_alpha and not est_alpha2 and not est_beta and not est_sigma:
-                plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                #plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+                #plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=gamma_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:
-                    plt.savefig(path + "/gamma_est_all.eps", dpi=300)
+                    plt.savefig(path + "/gamma_est_all_ips.eps", dpi=300)
                 plt.show()
-            elif est_alpha and est_beta:
-                #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
-                #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
-                if quadratic or bistable:
-                    plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
-                    plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
-                plt.axhline(y=alpha_true, linestyle="--", color="black")
-                #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
-                #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
-                if quadratic or bistable:
-                    plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
-                    plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
-                plt.axhline(y=beta_true, linestyle="--", color="black")
-                plt.legend()
-                if save_plots:
-                    plt.savefig(path + "/alpha_beta_est_all.eps", dpi=300)
-                plt.show()
-            elif est_alpha2 and est_beta:
-                plt.plot(t, np.mean(all_alpha2_t[:, :, 0], 1), label=r"$\theta_{t,2}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_alpha2_t[:, :, 1], 1), label=r"$\theta_{t,2}^N$ (Estimator 2)")
-                plt.axhline(y=alpha2_true, linestyle="--", color="black")
-                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\theta_{t,3}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\theta_{t,3}^N$ (Estimator 2)")
-                plt.axhline(y=beta_true, linestyle="--", color="black")
-                plt.legend()
-                if save_plots:
-                    plt.savefig(path + "/alpha2_beta_est_all.eps", dpi=300)
-                plt.show()
-            elif est_beta and est_sigma:
-                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\theta_{t,3}^N$ (Estimator 1)")
-                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\theta_{t,3}^N$ (Estimator 2)")
-                plt.axhline(y=beta_true, linestyle="--", color="black")
-                plt.plot(t, np.mean(all_sigma_t[:, :, 0], 1), label=r"$\eta_{t,1}^N$")
+            elif est_sigma and not est_alpha and not est_alpha2 and not est_beta and not est_gamma:
+                plt.plot(t, np.mean(all_sigma_t[:, :, 0], 1), label=r"$\eta_{t,1}^N$ (Estimator 1)")
                 plt.axhline(y=sigma_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:
-                    plt.savefig(path + "/beta_sigma_est_all.eps", dpi=300)
+                    plt.savefig(path + "/sigma_est_all.eps", dpi=300)
                 plt.show()
-            elif est_alpha and est_alpha2:
+            elif est_alpha and est_beta and not est_alpha2 and not est_gamma and not est_sigma:
+                #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+                #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=alpha_true, linestyle="--", color="black")
+                #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+                #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha_beta_est_all_ips.eps", dpi=300)
+                plt.show()
+            elif est_alpha and est_alpha2 and not est_beta and not est_gamma and not est_sigma:
                 plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\theta_{t,1}^N$ (Estimator 1)")
                 plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\theta_{t,1}^N$ (Estimator 2)")
                 plt.axhline(y=alpha_true, linestyle="--", color="black")
@@ -1460,5 +1437,87 @@ if __name__ == "__main__":
                 if save_plots:
                     plt.savefig(path + "/alpha_alpha2_est_all.eps", dpi=300)
                 plt.show()
+            elif est_alpha and est_gamma and not est_beta and not est_alpha2 and not est_sigma:
+                # plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=alpha_true, linestyle="--", color="black")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=gamma_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha_gamma_est_all_ips.eps", dpi=300)
+                plt.show()
+            elif est_alpha and est_sigma and not est_beta and not est_alpha2 and not est_gamma:
+                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\theta_{t,3}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\theta_{t,3}^N$ (Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                plt.plot(t, np.mean(all_sigma_t[:, :, 0], 1), label=r"$\eta_{t,1}^N$")
+                plt.axhline(y=sigma_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha_sigma_est_all.eps", dpi=300)
+                plt.show()
+            elif est_alpha2 and est_beta and not est_alpha and not est_gamma and not est_sigma:
+                plt.plot(t, np.mean(all_alpha2_t[:, :, 0], 1), label=r"$\theta_{t,2}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_alpha2_t[:, :, 1], 1), label=r"$\theta_{t,2}^N$ (Estimator 2)")
+                plt.axhline(y=alpha2_true, linestyle="--", color="black")
+                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\theta_{t,3}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\theta_{t,3}^N$ (Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha2_beta_est_all.eps", dpi=300)
+                plt.show()
+            elif est_beta and est_gamma and not est_alpha and not est_alpha2 and not est_sigma:
+                # plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=gamma_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/beta_gamma_est_all_ips.eps", dpi=300)
+                plt.show()
+            elif est_beta and est_sigma and not est_alpha and not est_alpha2 and not est_gamma:
+                plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\theta_{t,3}^N$ (Estimator 1)")
+                plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\theta_{t,3}^N$ (Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                plt.plot(t, np.mean(all_sigma_t[:, :, 0], 1), label=r"$\eta_{t,1}^N$")
+                plt.axhline(y=sigma_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/beta_sigma_est_all.eps", dpi=300)
+                plt.show()
+            elif est_alpha and est_beta and est_gamma and not est_alpha2 and not est_sigma:
+                # plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=alpha_true, linestyle="--", color="black")
+                # plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=beta_true, linestyle="--", color="black")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
+                # plt.plot(t, np.mean(all_gamma_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (Estimator 2)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 1)")
+                plt.plot(t, np.mean(all_gamma_ips_t[:, :, 1], 1), label=r"$\gamma_{t}^N$ (IPS Estimator 2)")
+                plt.axhline(y=gamma_true, linestyle="--", color="black")
+                plt.legend()
+                if save_plots:
+                    plt.savefig(path + "/alpha_beta_gamma_est_all_ips.eps", dpi=300)
+                plt.show()
+
 
 
