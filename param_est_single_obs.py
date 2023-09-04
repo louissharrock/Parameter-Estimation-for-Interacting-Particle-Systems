@@ -127,22 +127,28 @@ def grad_x_grad_stochastic_volatility(x, alpha1, alpha2):
 
 ## Stochastic opinion dynamics
 def grad_opinion_dynamics(x, alpha1, alpha2):
-    if -alpha2 < abs(x) < alpha2:
-        return alpha1 * np.exp(-.01 / (1 - (abs(x) / alpha2) ** 2)) * x
+    eps = .1
+    r = abs(x)
+    if -alpha2 < r < alpha2:
+        return alpha1 * np.exp(-eps / (1 - (r / alpha2) ** 2)) * x
     else:
         return 0
 
 
 def grad_theta1_grad_opinion_dynamics(x, alpha1, alpha2):
-    if -alpha2 < abs(x) < alpha2:
-        return np.exp(-.01 / (1 - (abs(x) / alpha2) ** 2)) * x
+    eps = .1
+    r = abs(x)
+    if -alpha2 < r < alpha2:
+        return np.exp(-eps/ (1 - (r / alpha2) ** 2)) * x
     else:
         return 0
 
 ## CHECK THISSS
 def grad_theta2_grad_opinion_dynamics(x, alpha1, alpha2):
-    if -alpha2 < abs(x) < alpha2:
-        return 2 * .01 * alpha1 / (alpha2 ** 3) * abs(x)**2 * 1/((1 - (abs(x)/alpha2)**2)**2) * np.exp(- .01 / (1 - (abs(x) / alpha2) ** 2)) * x
+    eps = .1
+    r = abs(x)
+    if -alpha2 < r < alpha2:
+        return 2 * eps * alpha1 / (alpha2 ** 3) * r**2 * 1/((1 - (r/alpha2)**2)**2) * np.exp(- eps / (1 - (r / alpha2) ** 2)) * x
     else:
         return 0
 
@@ -1078,6 +1084,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
         if est_beta2:
             if cucker_smale:
                 beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (-averaging_func1(grad_theta2_grad_w(xtN[i, 0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * (dvt[0] - (- grad_v(xtN[i,0], alpha_t[i]) - averaging_func2(grad_w(xtN[i,0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+            # normalisation by row seems key to make this estimator work
             if opinion_dynamics:
                 beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (-averaging_func1(np.vectorize(grad_theta2_grad_w)(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (- grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(np.vectorize(grad_w)(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
 
@@ -1118,7 +1125,7 @@ if __name__ == "__main__":
 
     # simulation parameters
     N_par = 20
-    T = 200
+    T = 1000
     dt = 0.1
 
     quadratic = False
@@ -1188,13 +1195,13 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta1_grad_opinion_dynamics
         grad_theta2_grad_w = grad_theta2_grad_opinion_dynamics
 
-    seeds = range(5)
+    seeds = range(2)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = .002 #[min(.1, .1/(1+t_val)**(.5)) for t_val in t] #0.005
+    gamma = .01 #[min(.1, .1/(1+t_val)**(.5)) for t_val in t] #0.005
 
     # parameters
     alpha0 = 3.0
@@ -1206,7 +1213,7 @@ if __name__ == "__main__":
     est_alpha2 = False
 
     beta0 = 0.2
-    beta_true = 2.0
+    beta_true = 1.0
     est_beta = False
 
     beta20 = 1.5
@@ -1251,7 +1258,7 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.random.normal(0,1,N_par) #(-1,1,N_par) #np.random.uniform(0, 3, N_par) #np.#np.random.uniform(-1, 1, N_par)
+        x0 = np.random.normal(0,2,N_par) #(-1,1,N_par) #np.random.uniform(0, 3, N_par) #np.#np.random.uniform(-1, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = np.random.uniform(-1, 1, N_par) #np.random.normal(0, 1, N_par)
 
