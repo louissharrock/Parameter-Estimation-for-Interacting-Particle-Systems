@@ -92,7 +92,7 @@ def grad_theta1_grad_cucker_smale(x, v, alpha1, alpha2):
 
 def grad_theta2_grad_cucker_smale(x, v, alpha1, alpha2):
     num = - alpha1 * np.log((1 + x ** 2)) * v
-    denom = (1 + x ** 2) ** (alpha2)
+    denom = (1 + x ** 2) ** alpha2
     return num / denom
 
 
@@ -1027,7 +1027,7 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
         # beta2_t (cucker-smale only)
         if est_beta2:
             if cucker_smale:
-                beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (- averaging_func1(grad_theta2_grad_w(xtN[i, 0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * (dvt[0] - (- grad_v(xtN[i,0], alpha_t[i]) - averaging_func2(grad_w(xtN[i,0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+                beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (-averaging_func1(grad_theta2_grad_w(xtN[i, 0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * (dvt[0] - (- grad_v(xtN[i,0], alpha_t[i]) - averaging_func2(grad_w(xtN[i,0] - xtN[i, :], vtN[i, 0] - vtN[i, :], beta_t[i], beta2_t[i]))) * dt)
 
         # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
@@ -1062,11 +1062,11 @@ if __name__ == "__main__":
         os.makedirs(path)
 
     # output
-    save_plots = False
+    save_plots = True
 
     # simulation parameters
     N_par = 100
-    T = 500
+    T = 2000
     dt = 0.1
 
     quadratic = False
@@ -1128,7 +1128,7 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta_grad_quadratic
         grad_x_grad_w = grad_x_grad_quadratic
 
-    seeds = range(2)
+    seeds = range(20)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
@@ -1137,21 +1137,21 @@ if __name__ == "__main__":
     gamma = .005 #[min(.1, .1/(1+t_val)**(.5)) for t_val in t] #0.005
 
     # parameters
-    alpha0 = 2.
-    alpha_true = 1.
+    alpha0 = 1.
+    alpha_true = .2
     est_alpha = False
 
     alpha20 = 2.5
     alpha2_true = 3.5
     est_alpha2 = False
 
-    beta0 = 1.
-    beta_true = .5
-    est_beta = True
+    beta0 = 2.
+    beta_true = 1.
+    est_beta = False
 
     beta20 = .2
     beta2_true = .5
-    est_beta2 = False
+    est_beta2 = True
 
     gamma0 = 1.0
     gamma_true = 0.3
@@ -1189,9 +1189,9 @@ if __name__ == "__main__":
         print(seed)
 
         # simulate mvsde
-        x0 = np.random.normal(-1, 1, N_par)
+        x0 = np.random.uniform(-1, 1, N_par)
         y0 = np.random.normal(0, 1, N_par)
-        v0 = np.random.normal(-1, 1, N_par) #np.random.normal(0, 1, N_par)
+        v0 = np.random.uniform(-1, 1, N_par) #np.random.normal(0, 1, N_par)
 
         if fitzhugh:
             xtN, ytN = sde_sim_func(N=N_par, T=T, grad_v=grad_v, alpha=alpha_true, grad_w=grad_w, beta=beta_true,
@@ -1412,7 +1412,7 @@ if __name__ == "__main__":
                 plt.axhline(y=beta_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:
-                    plt.savefig(path + "/beta_est_all_ips_ex2.eps", dpi=300)
+                    plt.savefig(path + "/beta_est_all_ips.eps", dpi=300)
                 plt.show()
             elif est_gamma and not est_alpha and not est_alpha2 and not est_beta and not est_sigma:
                 #plt.plot(t, np.mean(all_gamma_t[:, :, 0], 1), label=r"$\gamma_{t}^N$ (Estimator 1)")
