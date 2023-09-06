@@ -160,20 +160,6 @@ def grad_theta2_grad_opinion_dynamics(x, alpha1, alpha2):
         return 0
 
 
-## double cos
-
-def grad_double_cos(x, alpha):
-    def grad_kuramoto(x, alpha1, alpha2):
-        return alpha1 * np.sin(x) + alpha2 * np.sin(2*x)
-
-def grad_theta_grad_double_cos(x, alpha1, alpha2):
-    return np.sin(x)
-
-def grad_theta2_grad_double_cos(x, alpha1, alpha2):
-    return np.sin(2*x)
-
-
-
 #############################
 
 #######################
@@ -205,7 +191,8 @@ def grad_theta2_grad_double_cos(x, alpha1, alpha2):
 
 def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadratic, beta=0.1, Aij=None, Lij=None,
                  sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=1, gamma=2, cucker_smale=False,
-                 v0=1, beta2=0.5, stochastic_volatility=False, alpha2=0.5, all_particles=False, opinion_dynamics=False):
+                 v0=1, beta2=0.5, stochastic_volatility=False, alpha2=0.5, all_particles=False, opinion_dynamics=False,
+                 double_cos_confinement=False, double_cos_interaction=False):
 
     # check inputs
     if fitzhugh:
@@ -241,39 +228,26 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
     nt = int(np.round(T / dt))
 
     # parameters
-    if type(alpha) is float:
+    if type(alpha) is float or type(alpha) is int:
         alpha = [alpha] * (nt + 1)
 
-    if type(alpha) is int:
-        alpha = [alpha] * (nt + 1)
-
-    if type(beta) is float:
-        beta = [beta] * (nt + 1)
-
-    if type(beta) is int:
+    if type(beta) is float or type(beta) is int:
         beta = [beta] * (nt + 1)
 
     if fitzhugh:
-        if type(gamma) is int:
-            gamma = [gamma] * (nt+1)
-        if type(gamma) is float:
+        if type(gamma) is int or type(gamma) is float:
             gamma = [gamma] * (nt+1)
 
     if cucker_smale or opinion_dynamics:
-        if type(beta2) is int:
-            beta2 = [beta2] * (nt+1)
-        if type(beta2) is float:
+        if type(beta2) is int or type(beta2) is float:
             beta2 = [beta2] * (nt+1)
 
     if stochastic_volatility:
-        if type(alpha2) is int:
-            alpha2 = [alpha2] * (nt+1)
-        if type(alpha2) is float:
+        if type(alpha2) is int or type(alpha2) is float:
             alpha2 = [alpha2] * (nt+1)
 
-        if type(sigma) is int:
-            sigma = [sigma] * (nt+1)
-        if type(sigma) is float:
+    if stochastic_volatility:
+        if type(sigma) is int or type(sigma) is float:
             sigma = [sigma] * (nt+1)
 
     # initialise xt
