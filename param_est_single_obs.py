@@ -160,6 +160,19 @@ def grad_theta2_grad_opinion_dynamics(x, alpha1, alpha2):
         return 0
 
 
+## gradient of double sine potential
+def grad_double_kuramoto(x, alpha1, alpha2):
+    return alpha1 * np.sin(x) + alpha2 * np.sin(2*x)
+
+
+def grad_theta_grad_double_kuramoto(x, alpha1, alpha2):
+    return np.sin(x)
+
+
+def grad_theta2_grad_double_kuramoto(x, alpha1, alpha2):
+    return np.sin(2*x)
+
+
 #############################
 
 #######################
@@ -192,7 +205,7 @@ def grad_theta2_grad_opinion_dynamics(x, alpha1, alpha2):
 def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadratic, beta=0.1, Aij=None, Lij=None,
                  sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=None, gamma=None, cucker_smale=False,
                  v0=None, beta2=None, stochastic_volatility=False, alpha2=None, all_particles=False,
-                 opinion_dynamics=False):
+                 opinion_dynamics=False, double_kuramoto=False):
 
     # check inputs
     if fitzhugh:
@@ -216,10 +229,13 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
         assert grad_w == grad_quadratic
 
     if opinion_dynamics:
-        assert beta is not None
         assert beta2 is not None
         assert grad_v == grad_linear
         assert grad_w == grad_opinion_dynamics
+
+    if double_kuramoto:
+        assert beta2 is not None
+        assert grad_w == grad_double_kuramoto
 
     # set random seed
     np.random.seed(seed)
@@ -238,7 +254,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
         if type(gamma) is int or type(gamma) is float:
             gamma = [gamma] * (nt+1)
 
-    if cucker_smale or opinion_dynamics:
+    if cucker_smale or opinion_dynamics or double_kuramoto:
         if type(beta2) is int or type(beta2) is float:
             beta2 = [beta2] * (nt+1)
 
@@ -293,6 +309,16 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                     xt[i + 1, j] = xt[i, j] \
                                    - grad_v(xt[i, j], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i])) * dt \
+                                   + sigma * dwt[i, j]
+                while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
+                    xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
+                    xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
+        elif double_kuramoto:
+            for i in tqdm(range(0, nt)):
+                for j in range(N):
+                    xt[i + 1, j] = xt[i, j] \
+                                   - grad_v(xt[i, j], alpha[i]) * dt \
+                                   - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i], beta2[i])) * dt \
                                    + sigma * dwt[i, j]
                 while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
                     xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
