@@ -190,9 +190,9 @@ def grad_theta2_grad_opinion_dynamics(x, alpha1, alpha2):
 
 
 def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadratic, beta=0.1, Aij=None, Lij=None,
-                 sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=1, gamma=2, cucker_smale=False,
-                 v0=1, beta2=0.5, stochastic_volatility=False, alpha2=0.5, all_particles=False, opinion_dynamics=False,
-                 double_cos_confinement=False, double_cos_interaction=False):
+                 sigma=1, x0=1, dt=0.1, seed=1, kuramoto=False, fitzhugh=False, y0=None, gamma=None, cucker_smale=False,
+                 v0=None, beta2=None, stochastic_volatility=False, alpha2=None, all_particles=False,
+                 opinion_dynamics=False):
 
     # check inputs
     if fitzhugh:
