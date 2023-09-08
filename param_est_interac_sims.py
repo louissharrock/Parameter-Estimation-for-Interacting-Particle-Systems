@@ -32,8 +32,8 @@ code_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Es
 results_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Est/Code/old_paper_results"
 fig_directory = "/Users/louis/My Drive/Academia/Postdoc/Projects/MVSDE-Param-Est/Code/old_paper_figs"
 
-if not os.path.exists(figures_directory):
-    os.makedirs(figures_directory)
+if not os.path.exists(fig_directory):
+    os.makedirs(fig_directory)
 
 if not os.path.exists(results_directory):
    os.makedirs(results_directory)
@@ -77,7 +77,7 @@ plt.plot(t_vals,np.mean(sim_test,axis=1),color='black',linewidth=2.0)
 plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
 
 filename = 'sde_sim_1a.pdf'
-save_plot(fig_directory,filename)
+#save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -101,7 +101,7 @@ for i in range(0,N):
 plt.plot(t_vals,np.mean(sim_test,axis=1),color='black',linewidth=2.0)
 plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
 filename = 'sde_sim_1b.pdf'
-save_plot(fig_directory,filename)
+#save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -144,7 +144,7 @@ for beta in beta_vals:
     #plt.title(r"Fixed Point Equation: $\theta={0:.2f}$".format(beta))
     plt.legend(loc="upper left")
     filename = "bistable_fixed_point_theta_{0:.2f}.pdf".format(beta)
-    save_plot(fig_directory,filename)
+    #save_plot(fig_directory,filename)
     plt.show()
     
 ## plot bifurcation diagram
@@ -172,7 +172,7 @@ plt.ylabel(r"$m$")
 #plt.title(r"Bifuraction Diagram")
 plt.legend()#loc="upper right")
 filename = "bistable_bifurcation_bistable.pdf"
-save_plot(fig_directory,filename)
+#save_plot(fig_directory,filename)
 plt.show()
   
     
@@ -247,7 +247,7 @@ for beta in beta_vals:
     plt.legend()
     #plt.title(r"Invariant Density: $\theta={0:.2f}$".format(beta))
     filename = "bistable_potential_N_{}_T_{}_dt_{}_alpha_{}_beta_{}_noise_scale_{}.pdf".format(N,T,dt,alpha,beta,noise_scale)
-    save_plot(fig_directory,filename)
+    #save_plot(fig_directory,filename)
     plt.show()
     
     
@@ -288,7 +288,7 @@ for beta in beta_vals:
     filename = "kuramoto_fixed_point_K_{0:.2f}".format(beta)
     filename = filename.replace(".","_")
     filename+= ".pdf"
-    save_plot(fig_directory,filename)
+    #save_plot(fig_directory,filename)
     plt.show()
     
     
@@ -315,7 +315,7 @@ plt.ylabel(r"$r$")
 plt.title(r"Bifuraction Diagram")
 plt.legend()#loc="upper right")
 filename = "bistable_bifurcation_kuramoto.pdf"
-save_plot(fig_directory,filename)
+#save_plot(fig_directory,filename)
 plt.show()
 
 
@@ -439,7 +439,7 @@ for i in range(beta_vals.shape[0]):
     plt.plot(t_vals,np.mean(sim_test,axis=1),color='black',linewidth=4.0)
     plt.xlabel(r'$t$'); plt.ylabel(r'$x(t)$')
     filename = 'sde_sim_2_{}.pdf'.format(i)
-    save_plot(fig_directory,filename)
+    #save_plot(fig_directory,filename)
     plt.show()
 
 

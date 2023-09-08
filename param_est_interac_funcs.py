@@ -411,19 +411,12 @@ def sde_sim_func(N=1,T=100,v_func=linear_func,alpha=0.1,beta=None,
     ## simulate
     
     ## parameters
-    if type(alpha) is float:
+    if type(alpha) is float or type(alpha) is np.float64 or type(alpha) is int:
         alpha = [alpha]*nt
         
-    if type(alpha) is int:
-        alpha = [alpha]*nt
-        
-    if type(beta) is float:
+    if type(beta) is float or type(beta) is np.float64 or type(beta) is int:
         beta = [beta]*nt
-    
-    if type(beta) is int:
-        beta = [beta]*nt
-        
-    
+
     ## if in simple mean field form
     if(beta!=None): 
         if not kuramoto:
@@ -686,10 +679,10 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
     xt[0,:] = x0
     
     ## parameters
-    if type(alpha) is int:
+    if type(alpha) is int or type(alpha) is float or type(alpha) is np.float64:
         alpha = [alpha]*nt
         
-    if type(beta) is int:
+    if type(beta) is int or type(beta) is float or type(beta) is np.float64:
         beta = [beta]*nt
     
     ## intialise beta_est
