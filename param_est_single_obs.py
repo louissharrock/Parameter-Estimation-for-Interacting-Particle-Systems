@@ -1089,7 +1089,11 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
             elif double_kuramoto:
                 alpha_t[i+1] = alpha_t[i] + all_gamma[i] * (- grad_theta_grad_v(xtN[i, 0], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
             else:
-                alpha_t[i+1] = alpha_t[i] + all_gamma[i] * (-grad_theta_grad_v(xtN[i, 0], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
+                update = 0
+                for j in range(N_par):
+                    update += 1/N_par * (-grad_theta_grad_v(xtN[i, j], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i]))) * dt)
+                alpha_t[i+1] = alpha_t[i] + all_gamma[i] * update
+                #alpha_t[i+1] = alpha_t[i] + all_gamma[i] * (-grad_theta_grad_v(xtN[i, 0], alpha_t[i])) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
 
         # alpha2_t (stochastic volatility only)
         if est_alpha2:
@@ -1115,7 +1119,11 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
                 #beta_t[i + 1] = beta_t[i] + all_gamma[i] * 1 / N_par * update
                 beta_t[i + 1] = beta_t[i] + all_gamma[i] * (- averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
             else:
-                beta_t[i + 1] = beta_t[i] + all_gamma[i] * (-averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
+                update = 0
+                for j in range(N_par):
+                    update += (-averaging_func1(grad_theta_grad_w(xtN[i, j] - xtN[i, :], beta_t[i]))) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i]))) * dt)
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] * update
+                #beta_t[i + 1] = beta_t[i] + all_gamma[i] * (-averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i]))) * dt)
 
         # beta2_t (cucker-smale only)
         if est_beta2:
@@ -1191,8 +1199,8 @@ if __name__ == "__main__":
     save_plots = False
 
     # simulation parameters
-    N_par = 10
-    T = 500
+    N_par = 5
+    T = 2000
     dt = 0.1
 
     quadratic = False
@@ -1270,37 +1278,37 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta1_grad_double_kuramoto
         grad_theta2_grad_w = grad_theta2_grad_double_kuramoto
 
-    seeds = range(20)
+    seeds = range(10)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = 0.1 #[min(.1, .1/(1+t_val)**(.5)) for t_val in t] #0.005
+    gamma = .1 #[min(.5, .5/(t_val)) for t_val in t[1:]] #0.005
 
     # parameters
-    alpha0 = 1.0
-    alpha_true = 0.
+    alpha0 = 2.5
+    alpha_true = .5
     est_alpha = False
 
     alpha20 = 3.5
     alpha2_true = 3.5
     est_alpha2 = False
 
-    beta0 = 2.0
-    beta_true = 1.5
-    est_beta = False
+    beta0 = .5
+    beta_true = 1.
+    est_beta = True
 
     beta20 = 1.5
-    beta2_true = 1.0
-    est_beta2 = True
+    beta2_true = 4.0
+    est_beta2 = False
 
     gamma0 = 1.0
     gamma_true = 0.3
     est_gamma = False
 
     sigma0 = 0.5
-    sigma_true = .01
+    sigma_true = 1.
     est_sigma = False
 
     N_est = 50
@@ -1329,10 +1337,11 @@ if __name__ == "__main__":
         all_sigma_ips_t = np.zeros((nt + 1, len(seeds), 2))
 
     for idx, seed in enumerate(seeds):
+
         print(seed)
+        np.random.seed(seed)
 
         # simulate ips
-
         x0 = np.ones(N_par)
         y0 = np.random.normal(0, 1, N_par)
         v0 = np.random.uniform(-1, 1, N_par) #np.random.normal(0, 1, N_par)
@@ -1672,12 +1681,12 @@ if __name__ == "__main__":
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_alpha_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (Estimator 2)")
                 plt.plot(t, np.mean(all_alpha_ips_t[:, :, 0], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 1)")
-                plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
+                #plt.plot(t, np.mean(all_alpha_ips_t[:, :, 1], 1), label=r"$\alpha_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=alpha_true, linestyle="--", color="black")
                 #plt.plot(t, np.mean(all_beta_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (Estimator 1)")
                 #plt.plot(t, np.mean(all_beta_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (Estimator 2)")
                 plt.plot(t, np.mean(all_beta_ips_t[:, :, 0], 1), label=r"$\beta_{t}^N$ (IPS Estimator 1)")
-                plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
+                #plt.plot(t, np.mean(all_beta_ips_t[:, :, 1], 1), label=r"$\beta_{t}^N$ (IPS Estimator 2)")
                 plt.axhline(y=beta_true, linestyle="--", color="black")
                 plt.legend()
                 if save_plots:

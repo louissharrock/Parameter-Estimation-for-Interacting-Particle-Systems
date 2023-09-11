@@ -690,7 +690,7 @@ def mean_field_rmle(N=10,T=500,v_func=linear_func,alpha=0.1,beta=1,beta0=0,
     if est_beta:
         beta_est[0] = beta0
     else:
-        beta_est[0] = beta
+        beta_est[0] = beta[0]
     
     ## initialise alpha_est
     alpha_est = np.zeros(nt+1)
