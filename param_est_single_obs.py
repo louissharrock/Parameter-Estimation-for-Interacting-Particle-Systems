@@ -271,15 +271,19 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
     xt = np.zeros((nt + 1, N))
     xt[0, :] = x0
 
+    dxt = np.zeros((nt, N))
+
     # intialise yt
     if fitzhugh:
         yt = np.zeros((nt+1, N))
         yt[0, :] = y0
+        dyt = np.zeros((nt, N))
 
     # initialise vt
     if cucker_smale:
         vt = np.zeros((nt+1, N))
         vt[0, :] = v0
+        dvt = np.zeros((nt, N))
 
     # brownian motion
     dwt = np.sqrt(dt) * np.random.randn(nt + 1, N)
@@ -296,6 +300,8 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                - grad_w(xt[i] - np.mean(xt[i, :]), beta[i]) * dt \
                                + sigma * dwt[i, :]
                 yt[i + 1, :] = yt[i, :] + (gamma[i] + xt[i, :]) * dt
+                dxt = xt[i+1, :] - xt[i, :]
+                dyt = yt[i+1, :] - yt[i, :]
         elif cucker_smale:
             for i in tqdm(range(0, nt)):
                 xt[i + 1, :] = xt[i, :] + vt[i, :] * dt
@@ -304,6 +310,8 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                    - grad_v(xt[i, j], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], vt[i, j] - vt[i, :], beta[i], beta2[i])) * dt \
                                    + sigma * dwt[i, j]
+                dxt = xt[i + 1, :] - xt[i, :]
+                dvt = vt[i + 1, :] - vt[i, :]
         elif kuramoto:
             for i in tqdm(range(0, nt)):
                 for j in range(N):
@@ -311,6 +319,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                    - grad_v(xt[i, j], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i])) * dt \
                                    + sigma * dwt[i, j]
+                dxt = xt[i + 1, :] - xt[i, :]
                 while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
                     xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
                     xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
@@ -321,6 +330,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                    - grad_v(xt[i, j], alpha[i]) * dt \
                                    - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i], beta2[i])) * dt \
                                    + sigma * dwt[i, j]
+                dxt = xt[i + 1, :] - xt[i, :]
                 while np.any(xt[i + 1, :] > + np.pi) or np.any(xt[i + 1, :] < - np.pi):
                     xt[i + 1, np.where(xt[i + 1, :] > +np.pi)] -= 2. * np.pi
                     xt[i + 1, np.where(xt[i + 1, :] < -np.pi)] += 2. * np.pi
@@ -330,6 +340,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                - grad_v(xt[i, :], alpha[i], alpha2[i]) * dt \
                                - grad_w(xt[i, :] - np.mean(xt[i, :]), beta[i]) * dt \
                                + sigma[i] * xt[i, :] ** 1.5 * dwt[i, :]
+                dxt = xt[i + 1, :] - xt[i, :]
         elif opinion_dynamics:
             for i in tqdm(range(0, nt)):
                 for j in range(N):
@@ -337,6 +348,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                - grad_v(xt[i, j], alpha[i]) * dt \
                                - 1 / N * np.sum(np.vectorize(grad_w, otypes=[np.float64])(xt[i, j] - xt[i, :], beta[i], beta2[i])) * dt \
                                + sigma * dwt[i, j]
+                dxt = xt[i + 1, :] - xt[i, :]
 
         else:
             if grad_w == grad_quadratic:
@@ -345,6 +357,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                    - grad_v(xt[i, :], alpha[i]) * dt \
                                    - grad_w(xt[i, :] - np.mean(xt[i, :]), beta[i]) * dt \
                                    + sigma * dwt[i, :]
+                    dxt = xt[i + 1, :] - xt[i, :]
             if grad_w != grad_quadratic:
                 for i in tqdm(range(0, nt)):
                     for j in range(N):
@@ -352,6 +365,7 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
                                        - grad_v(xt[i, j], alpha[i]) * dt \
                                        - 1 / N * np.sum(grad_w(xt[i, j] - xt[i, :], beta[i])) * dt \
                                        + sigma * dwt[i, j]
+                        dxt = xt[i + 1, :] - xt[i, :]
 
     # if in Aij form
     if np.any(Aij):
@@ -359,11 +373,13 @@ def sde_sim_func(N=20, T=100, grad_v=grad_quadratic, alpha=1, grad_w=grad_quadra
             for j in range(0, N):
                 xt[i + 1, j] = xt[i, j] - grad_v(xt[i, j], alpha[i]) * dt \
                                - np.dot(Aij[j, :],xt[i, j] - xt[i, :]) * dt + sigma * dwt[i, j]
+            dxt = xt[i + 1, :] - xt[i, :]
 
     # if in Lij form
     if np.any(Lij):
         for i in tqdm(range(0, nt)):
             xt[i + 1, :] = xt[i, :] - grad_v(xt[i, :], alpha[i]) * dt - np.dot(Lij, xt[i, :]) * dt + sigma * dwt[i, :]
+            dxt = xt[i + 1, :] - xt[i, :]
 
     if all_particles:
         if fitzhugh:
@@ -1113,11 +1129,11 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
             elif opinion_dynamics:
                 beta_t[i + 1] = beta_t[i] + all_gamma[i] * (-averaging_func1(np.vectorize(grad_theta_grad_w, otypes=[np.float64])(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(np.vectorize(grad_w, otypes=[np.float64])(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
             elif double_kuramoto:
-                #update = 0
-                #for j in range(N_par):
-                #    update += (- averaging_func1(grad_theta_grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
-                #beta_t[i + 1] = beta_t[i] + all_gamma[i] * 1 / N_par * update
-                beta_t[i + 1] = beta_t[i] + all_gamma[i] * (- averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+                update = 0
+                for j in range(N_par):
+                    update += (- averaging_func1(grad_theta_grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+                beta_t[i + 1] = beta_t[i] + all_gamma[i] * 1 / N_par * update
+                #beta_t[i + 1] = beta_t[i] + all_gamma[i] * (- averaging_func1(grad_theta_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
             else:
                 update = 0
                 for j in range(N_par):
@@ -1136,11 +1152,11 @@ def online_est_ips(xtN, dt, grad_v, grad_theta_grad_v, alpha0, alpha_true,
                 beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * 1 / N_par * update
                 #beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (-averaging_func1(np.vectorize(grad_theta2_grad_w, otypes=[np.float64])(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (- grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(np.vectorize(grad_w, otypes=[np.float64])(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
             elif double_kuramoto:
-                #update = 0
-                #for j in range(N_par):
-                #    update += (- averaging_func1(grad_theta2_grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
-                #beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * 1 / N_par * update
-                beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (- averaging_func1(grad_theta2_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+                update = 0
+                for j in range(N_par):
+                    update += (- averaging_func1(grad_theta2_grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[j] - (-grad_v(xtN[i, j], alpha_t[i]) - averaging_func2(grad_w(xtN[i, j] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
+                beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * 1 / N_par * update
+                #beta2_t[i + 1] = beta2_t[i] + all_gamma[i] * (- averaging_func1(grad_theta2_grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * 1 / (sigma ** 2) * (dxt[0] - (-grad_v(xtN[i, 0], alpha_t[i]) - averaging_func2(grad_w(xtN[i, 0] - xtN[i, :], beta_t[i], beta2_t[i]))) * dt)
 
         # gamma_t (fitzhugh-nagumo only)
         if est_gamma:
@@ -1278,30 +1294,30 @@ if __name__ == "__main__":
         grad_theta_grad_w = grad_theta1_grad_double_kuramoto
         grad_theta2_grad_w = grad_theta2_grad_double_kuramoto
 
-    seeds = range(10)
+    seeds = range(5)
 
     nt = round(T / dt)
     t = [i * dt for i in range(nt + 1)]
 
     # step size
-    gamma = .1 #[min(.5, .5/(t_val)) for t_val in t[1:]] #0.005
+    gamma = .1 #[min(.1, .1/(.1*t_val)) for t_val in t[1:]] #0.005
 
     # parameters
-    alpha0 = 2.5
-    alpha_true = .5
+    alpha0 = 1
+    alpha_true = 1
     est_alpha = False
 
     alpha20 = 3.5
     alpha2_true = 3.5
     est_alpha2 = False
 
-    beta0 = .5
+    beta0 = np.random.uniform(1,2)
     beta_true = 1.
     est_beta = True
 
-    beta20 = 1.5
-    beta2_true = 4.0
-    est_beta2 = False
+    beta20 = np.random.uniform(2,3)
+    beta2_true = 2.
+    est_beta2 = True
 
     gamma0 = 1.0
     gamma_true = 0.3
